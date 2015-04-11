@@ -10,9 +10,9 @@ import json
 
 from bs4 import BeautifulSoup
 from zhihuBase import ZhiHuPage, get_number_from_string
-import topic
 import answer
 import question
+import topic
 
 
 class User(ZhiHuPage):
@@ -271,19 +271,19 @@ if __name__ == '__main__':
     #print user.get_topic_num()
     #print user.get_follow_posts_num()
     #print user.get_topic_num()
-    #count = 0
-    #for topic in user.get_topics():
-    #    count += 1
-    #    print count
-    #    print topic.get_topic_name()
+    count = 0
+    for m_topic in user.get_topics():
+        count += 1
+        print count
+        print m_topic.get_topic_name()
     #for ans in user.get_answers():
     #    print ans.get_voter_num()
     #    q = ans.get_question()
     #    print q.get_title()
     #    print '--------'
 
-    for q in user.get_asks():
-        print q.get_title()
-        print q.get_answers_num()
-        print q.get_follower_num() 
+    #for q in user.get_asks():
+    #    print q.get_title()
+    #    print q.get_answers_num()
+    #    print q.get_follower_num() 
 
