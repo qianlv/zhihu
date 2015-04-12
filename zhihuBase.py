@@ -8,6 +8,9 @@ import json
 import os
 import re
 
+# 常量
+ZHI_HU_URL = "http://www.zhihu.com"
+
 def save_page(title, content):
     try:
         with open(title.strip(), "wb") as file:
@@ -61,9 +64,7 @@ def login(email, passwd):
 
 class ZhiHuPage(object):
     def __init__(self, url, soup = None):
-        if url and url[-1] == '/':
-            url = url[0:-1]
-        self.url = url
+        self.url = self.__deal_url(url)
         if soup:
             self.soup = soup
         elif url:
@@ -78,6 +79,20 @@ class ZhiHuPage(object):
         if session is None:
             login(email, passwd)
 
+    def __deal_url(self, url):
+        if url == None:
+            return None
+
+        if url[-1] == '/':
+            url = url[0:-1]
+        url = url.split("/")
+        if url[0] != "http:":
+            url.insert(0, "http:")
+        return "/".join(url)
+
+    def get_id(self):
+        if self.url:
+            return self.url.split("/")[4]
 
     def get_page(self, url):
         global session
@@ -92,6 +107,7 @@ class ZhiHuPage(object):
             print 'Request times out'
             soup = None
         return soup
+
     def get_post(self, url, data):
         global session
         self.__get_session()

@@ -1,7 +1,6 @@
 #!/usr/bin/python
 #encoding=utf-8
 
-
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -10,28 +9,32 @@ import json
 
 from bs4 import BeautifulSoup
 from zhihuBase import ZhiHuPage, get_number_from_string
+from zhihuBase import ZHI_HU_URL
 import answer
 import question
 import topic
 
 
 class User(ZhiHuPage):
-    def __init__(self, url):
+    def __init__(self, url, name = None, user_id = None):
         if url and url[-1] == '/':
             url = url[0:-1]
+        self.user_name = name
+        self.user_id = user_id
         super(User, self).__init__(url)
 
     # 用户名
     def get_user_name(self):
         if self.url is None:
             self.user_name = u"匿名用户"
-
-        if hasattr(self, "user_name"):
-            return self.user_name
-        else:
+        if self.user_name == None:
             soup = self.soup.find("div", attrs={"class": "title-section ellipsis"})
             self.user_name = soup.span.string
         return self.user_name
+
+    def get_user_id(self):
+        return self.get_id()
+
 
     # 获得赞同数
     def get_agree_num(self):
@@ -135,7 +138,7 @@ class User(ZhiHuPage):
             follow_tag = follow_soup.find("div", attrs={"class": "zh-general-list clearfix"})
             follow_a = follow_tag.find_all("a", attrs={"class": "zm-item-link-avatar"})
             for follow_user in follow_a:
-                url = "http://www.zhihu.com" + follow_user.get("href")
+                url = ZHI_HU_URL + follow_user.get("href")
                 yield User(url)
 
             # 初始化data数据
@@ -143,7 +146,7 @@ class User(ZhiHuPage):
                 data_init = json.loads(follow_tag.get("data-init"), encoding='utf-8')
                 input_tag = follow_soup.find("input", attrs={"type":"hidden", "name": "_xsrf"})
                 value = input_tag.get("value")
-                post_url = "http://www.zhihu.com/node/" + data_init['nodename']
+                post_url = ZHI_HU_URL + "/node/" + data_init['nodename']
                 for offset in range(20, page_num * 20 + 20, 20):
                     data_init["params"]["offset"] = offset
                     data = {
@@ -155,7 +158,7 @@ class User(ZhiHuPage):
                     for content in response.json()['msg']:
                         soup = BeautifulSoup(content)
                         follow_user = soup.find("a")
-                        url = "http://www.zhihu.com" + follow_user.get('href')
+                        url = ZHI_HU_URL + follow_user.get('href')
                         yield User(url)
 
     # 关注话题数 
@@ -186,7 +189,7 @@ class User(ZhiHuPage):
             topic_a = topic_tag.find_all("a", 
                         attrs={"class": "zm-list-avatar-link"})
             for a in topic_a:
-                url = "http://www.zhihu.com" + a.get("href")
+                url = ZHI_HU_URL + a.get("href")
                 #print url
                 yield topic.Topic(url)
 
@@ -206,7 +209,7 @@ class User(ZhiHuPage):
                     topic_a = soup.find_all("a", 
                                 attrs={"class": "zm-list-avatar-link"})
                     for a in topic_a:
-                        url = "http://www.zhihu.com" + a.get("href")
+                        url = ZHI_HU_URL + a.get("href")
                         #print url
                         yield topic.Topic(url)
 
@@ -235,7 +238,7 @@ class User(ZhiHuPage):
             soup = self.get_page(self.url + "/answers?page=" + str(i))
             answer_list = soup.find("div", id="zh-profile-answer-list").find_all("a", class_="question_link")
             for item in answer_list:
-                url = "http://www.zhihu.com" + item.get("href")
+                url = ZHI_HU_URL + item.get("href")
                 yield answer.Answer(url)
 
     # 提的问题
@@ -248,7 +251,7 @@ class User(ZhiHuPage):
             soup = self.get_page(self.url + "/asks?page=" + str(i))
             ask_list = soup.find("div", id="zh-profile-ask-list").find_all("a", class_="question_link")
             for item in ask_list:
-                url = "http://www.zhihu.com" + item.get("href")
+                url = ZHI_HU_URL + item.get("href")
                 yield question.Question(url)
 
 

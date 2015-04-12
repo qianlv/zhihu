@@ -14,7 +14,6 @@ import question
 class Topic(ZhiHuPage):
     def __init__(self, url):
         url = self.deal_url(url)
-        print '--', url
         super(Topic, self).__init__(url)
 
     def deal_url(self, url):
@@ -33,7 +32,7 @@ class Topic(ZhiHuPage):
         return self.url
 
     def get_topic_id(self):
-        return int(self.url.split("/")[4])
+        return self.get_id()
 
     def get_topic_name(self):
         if hasattr(self, "topic_name"):
@@ -116,7 +115,7 @@ class TopicNode(ZhiHuPage):
 
     def get_topic_id(self):
         if self.topic_id == None:
-            self.topic_id = int(self.url.split("/")[4])
+            self.topic_id = self.get_id()
         return self.topic_id
 
     def get_topic_url(self):

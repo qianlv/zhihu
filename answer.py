@@ -42,7 +42,6 @@ class Answer(ZhiHuPage):
             auther_tag = auther_tag.a
             auther_url = u"http://www.zhihu.com" + auther_tag.get("href")
         return user.User(auther_url)
-    
     # 赞同数
     def get_voter_num(self):
         if hasattr(self, "voter_num"):
