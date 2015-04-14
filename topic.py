@@ -168,7 +168,7 @@ if __name__ == '__main__':
     #    print topic.get_topic_name()
     #
     my_topic_node = TopicNode("http://www.zhihu.com/topic/19587463/organize/entire")
-    print "节点名字:", my_topic_node.get_node_name()
+    print "节点名字:", my_topic_node.get_node_name().encode("utf-8")
     print "节点URL:", my_topic_node.get_node_url()
     print "话题ID:", my_topic_node.get_topic_id()
     print "话题URL:", my_topic_node.get_topic_url()

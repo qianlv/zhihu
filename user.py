@@ -278,7 +278,7 @@ if __name__ == '__main__':
     for m_topic in user.get_topics():
         count += 1
         print count
-        print m_topic.get_topic_name()
+        print m_topic.get_topic_name().encode("utf-8")
     #for ans in user.get_answers():
     #    print ans.get_voter_num()
     #    q = ans.get_question()
