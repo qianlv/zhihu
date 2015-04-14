@@ -13,6 +13,7 @@ from zhihuBase import ZHI_HU_URL
 import answer
 import question
 import topic
+import collection
 
 
 class User(ZhiHuPage):
@@ -30,10 +31,10 @@ class User(ZhiHuPage):
         if self.user_name == None:
             soup = self.soup.find("div", attrs={"class": "title-section ellipsis"})
             self.user_name = soup.span.string
-        return self.user_name
+        return self.user_name.encode("utf-8")
 
     def get_user_id(self):
-        return self.get_id()
+        return self.get_id().encode("utf-8")
 
 
     # 获得赞同数
@@ -244,7 +245,7 @@ class User(ZhiHuPage):
     # 提的问题
     def get_asks(self):
         if self.url is None:
-            yield
+            return
 
         page = (self.get_asks_num() + 19) / 20
         for i in range(1, page + 1):
@@ -253,6 +254,20 @@ class User(ZhiHuPage):
             for item in ask_list:
                 url = ZHI_HU_URL + item.get("href")
                 yield question.Question(url)
+
+    # 收藏夹
+    def get_collections(self):
+        if self.url is None:
+            return
+        
+        page = (self.get_collections_num() + 19) / 20
+        for i in range(1, page + 1):
+            soup = self.get_page(self.url + "/collections?page=" + str(i))
+            collection_list = soup.find_all("a", class_="zm-profile-fav-item-title")
+            for item in ask_list:
+                url = ZHI_HU_URL + item.get("href")
+                yield collection.Collection(url)
+
 
 
 if __name__ == '__main__':

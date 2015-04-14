@@ -36,7 +36,7 @@ class Topic(ZhiHuPage):
 
     def get_topic_name(self):
         if hasattr(self, "topic_name"):
-            return self.topic_name
+            return self.topic_name.encode("utf-8")
 
         try:
             soup = self.soup.find("div", attrs={"class": "topic-name", "id": "zh-topic-title"})
@@ -44,7 +44,7 @@ class Topic(ZhiHuPage):
         except AttributeError, e:
             print e
             self.topic_name = None
-        return self.topic_name
+        return self.topic_name.encode("utf-8")
 
     def get_topic_page_num(self):
         if hasattr(self, "topic_page_num"):

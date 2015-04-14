@@ -9,6 +9,7 @@ import json
 from bs4 import BeautifulSoup
 
 from zhihuBase import ZhiHuPage, remove_blank_lines, get_number_from_string
+from zhihuBase import ZHI_HU_URL
 import topic
 import answer
 
@@ -18,7 +19,7 @@ class Question(ZhiHuPage):
 
     def get_title(self):
         if hasattr(self, "title"):
-            return self.title
+            return self.title.encode("utf-8")
         else:
             try:
                 title_div = self.soup.find("div", id="zh-question-title")
@@ -28,7 +29,7 @@ class Question(ZhiHuPage):
             title = title_div.get_text()
             title = remove_blank_lines(title)
             self.title = title
-        return self.title
+        return self.title.encode("utf-8")
 
     def get_detail(self):
         detail = None
@@ -40,7 +41,7 @@ class Question(ZhiHuPage):
 
         detail = detail_div.get_text()
         detail = remove_blank_lines(detail)
-        return detail
+        return detail.encode("utf-8")
 
     def get_answers_num(self):
         if hasattr(self, "answers_num"):
@@ -63,14 +64,14 @@ class Question(ZhiHuPage):
         soup = self.soup.find("div", id="zh-question-answer-wrap")
         answer_link = soup.find_all("a", class_="answer-date-link")
         for link in answer_link:
-            url = "http://www.zhihu.com" + link.get("href")
+            url = ZHI_HU_URL + link.get("href")
             print url
             yield answer.Answer(url)
 
         answer_num = (self.get_answers_num() + 49) / 50
         if answer_num > 1:
             data_init = json.loads(soup.get("data-init"))
-            post_url = "http://www.zhihu.com/node/" + data_init['nodename'] 
+            post_url = ZHI_HU_URL + "/node/" + data_init['nodename'] 
             input_tag = self.soup.find("input", attrs={"type":"hidden", "name": "_xsrf"})
             value = input_tag.get("value")
             for offset in range(50, answer_num * 50 + 50, 50):
@@ -85,7 +86,7 @@ class Question(ZhiHuPage):
                     soup = BeautifulSoup(content)
                     link = soup.find("a", 
                                 class_="answer-date-link")
-                    url = "http://www.zhihu.com" + link.get("href")
+                    url = ZHI_HU_URL + link.get("href")
                     print url
                     yield answer.Answer(url)
         
@@ -107,7 +108,7 @@ class Question(ZhiHuPage):
             soup = self.soup.find("div", attrs={"class": "zm-tag-editor-labels zg-clear"})
             topic_all = soup.find_all("a") 
             for topic_tag in topic_all:
-                url = "http://www.zhihu.com" + topic_tag.get('href')
+                url = ZHI_HU_URL + topic_tag.get('href')
                 yield topic.Topic(url)
         except AttributeError, e:
             print e

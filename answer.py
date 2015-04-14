@@ -73,7 +73,7 @@ class Answer(ZhiHuPage):
 
     def get_content(self):
         soup = self.soup.find("div", class_=" zm-editable-content clearfix")
-        return soup.get_text()
+        return soup.get_text().encode("utf-8")
 
 if __name__ == '__main__':
     answer = Answer("http://www.zhihu.com/question/22808635/answer/43850014")

@@ -44,7 +44,6 @@ session = None
 def login(email, passwd):
     global session
     login_data = {'email': email, 'password': passwd}
-    print email, passwd
 
     user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
     headers = { 
@@ -58,8 +57,9 @@ def login(email, passwd):
     response = s.post('http://www.zhihu.com/login', data = login_data, headers = headers)
     if response.json()['r'] == 1:
         print 'Login Failed, reason is:'
-        for m in r.json()['msg']:
-            print r.json()['msg'][m]
+        for m in response.json()['msg']:
+            exit(response.json()['msg'][m].encode("utf-8"))
+            
 
     session = s
 

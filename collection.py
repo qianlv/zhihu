@@ -24,15 +24,15 @@ class Collection(ZhiHuPage):
         if self.name == None:
             self.name = self.soup.find("h2", 
                     id="zh-fav-head-title").string
-        return self.name
+        return self.name.encode("utf-8")
 
     def get_collection_id(self):
         if self.collection_id == None:
             self.collection_id = int(self.url.split("/")[4])
-        return self.collection_id
+        return self.collection_id.encode("utf-8")
 
     def get_collection_url(self):
-        return self.url
+        return self.url.encode("utf-8")
     
     def get_creator(self):
         soup = self.soup.find("h2", 
