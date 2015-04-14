@@ -44,6 +44,7 @@ session = None
 def login(email, passwd):
     global session
     login_data = {'email': email, 'password': passwd}
+    print email, passwd
 
     user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
     headers = { 
@@ -74,8 +75,16 @@ class ZhiHuPage(object):
 
     def __get_session(self):
         global session
-        email = "1054059790@qq.com"
-        passwd = "xiao105405"
+        from ConfigParser import SafeConfigParser
+        try:
+            f = open("config.ini")
+        except IOError:
+            exit("You must be set config.ini")
+        config = SafeConfigParser()
+        config.readfp(f)
+        email = config.get("acount", "email")
+        passwd = config.get("acount", "passwd")
+
         if session is None:
             login(email, passwd)
 
