@@ -5,9 +5,12 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 import re
+import logging
 
 from bs4 import BeautifulSoup
+
 from zhihuBase import ZhiHuPage, is_num_by_except
+from zhihuBase import ZHI_HU_URL
 import question
 
 
@@ -39,11 +42,13 @@ class Topic(ZhiHuPage):
             return self.topic_name.encode("utf-8")
 
         try:
-            soup = self.soup.find("div", attrs={"class": "topic-name", "id": "zh-topic-title"})
+            soup = self.soup.find("div", 
+                   attrs={"class": "topic-name", "id": "zh-topic-title"})
             self.topic_name = soup.h1.get_text()
-        except AttributeError, e:
-            print e
-            self.topic_name = None
+        except Exception, e:
+            logging.warn("Topic get_topic_name error|%s|%s", self.url, str(e))
+            return None 
+
         return self.topic_name.encode("utf-8")
 
     def get_topic_page_num(self):
@@ -53,11 +58,16 @@ class Topic(ZhiHuPage):
         try:
             soup = self.soup.find("div", 
                     attrs={"class": "zm-invite-pager"})
-            spans = soup.strings
-            self.topic_page_num = max([int(num) for num in spans if is_num_by_except(num)])
-        except AttributeError, e:
-            print e
-            self.topic_page_num = 1
+            if soup: 
+                spans = soup.strings
+                self.topic_page_num = max([int(num) for num in spans 
+                                           if is_num_by_except(num)])
+            else:
+                self.topic_page_num = 1
+        except Exception, e:
+            logging.warn("Topic get_topic_page_num error|%s|%s", 
+                            self.url, str(e))
+            return None 
         return self.topic_page_num
 
     def get_topic_follower_num(self):
@@ -65,15 +75,16 @@ class Topic(ZhiHuPage):
             return self.topic_follower_num
 
         try:
-            num = self.soup.find("div", attrs={"class": "zm-topic-side-followers-info"}).strong.get_text()
+            num = self.soup.find("div", 
+                  class_="zm-topic-side-followers-info").strong.get_text()
 
             if is_num_by_except(num):
                 self.topic_follower_num = int(num)
             else:
                 self.topic_follower_num = 0
-        except AttributeError, e:
-            print e
-            self.topic_follower_num = 0
+        except Exception, e:
+            logging.warn("Topic get_topic_follower_num error|%s|%s", self.url, str(e))
+            return None 
 
         return self.topic_follower_num 
 
@@ -81,12 +92,16 @@ class Topic(ZhiHuPage):
     def get_questions(self):
         for page in xrange(1, self.get_topic_page_num() + 1):
             url = self.url + "?page=" + str(page)
-            page_soup = self.get_page(url) 
-            question_links = page_soup.find_all("a", 
-                    attrs={"target": "_blank", "class": "question_link"})
+            try:
+                page_soup = self.get_page(url) 
+                question_links = page_soup.find_all("a", 
+                        attrs={"target": "_blank", "class": "question_link"})
+            except Exception, e:
+                logging.warn("Topic get_questions error|%s|%s", self.url, str(e))
+                return 
+
             for link in question_links:
-                url = "http://www.zhihu.com" + link.get('href')
-                #print url
+                url = ZHI_HU_URL + link.get('href')
                 yield question.Question(url) 
 
     def get_child_topics(self):
@@ -106,9 +121,16 @@ class TopicNode(ZhiHuPage):
 
     def get_node_name(self):
         if self.node_name == None:
-            soup = self.soup.find("h1")
-            self.node_name = soup.string
-        return self.node_name
+            try:
+                soup = self.soup.find("h1", class_="zm-editable-content")
+                self.node_name = soup.string
+            except Exception, e:
+                logging.warn("TopicNode get_node_name error|%s|%s", 
+                            self.url if self.url else '', str(e))
+
+                return None
+
+        return self.node_name.encode("utf-8")
     
     def get_node_url(self):
         return self.url
@@ -129,23 +151,37 @@ class TopicNode(ZhiHuPage):
         pass
 
     def get_children_nodes(self):
-        xsrf = self.soup.find("input", 
-            attrs={"name":"_xsrf", "type":"hidden"}).get("value")
+        try:
+            xsrf = self.soup.find("input", 
+                    attrs={"name":"_xsrf", "type":"hidden"}).get("value")
+        except Exception, e:
+            logging.warn("TopicNode get_children_nodes can't find xsrf value \
+                          |%s|%s", self.url if self.url else '', str(e))
+            # 返回出错的url用于重新处理
+            yield self.url
+            return
+
         data = { "_xsrf": xsrf }
 
         post_url = self.url
         while True:
             data_token, data_parent = None, None
-            response = self.get_post(post_url, data)
-            if response == None:
-                return 
 
-            msg = response.json()["msg"]
-            topic_list = msg[1]
+            try:
+                response = self.get_post(post_url, data)
+                msg = response.json()["msg"]
+                topic_list = msg[1]
+            except Exception, e:
+                logging.warn("TopicNode get_children_nodes post_url and self_url \
+                                |%s|%s|%s", post_url, self.url, str(e))
+                # 返回出错的url用于重新处理
+                yield post_url
+                return
+
             for item in topic_list:
                 if item[0][0] == "topic":
                     url = "http://www.zhihu.com/topic/%s/organize/entire" % item[0][2]
-                    yield TopicNode(url, name = item[0][1], topic_id = item[0][2])
+                    yield TopicNode(url, name = item[0][1], topic_id = int(item[0][2]))
                 elif item[0][0] == "load":
                     data_token = item[0][2]
                     data_parent = item[0][3]
@@ -155,20 +191,20 @@ class TopicNode(ZhiHuPage):
             post_url = self.url + post_url
 
 if __name__ == '__main__':
-    #my_topic = Topic("http://www.zhihu.com/topic/19570098")
-    #print my_topic.get_topic_name()
-    #print my_topic.get_topic_page_num()
-    #print my_topic.get_topic_follower_num()
-    #my_question = my_topic.get_questions().next()
-    #print my_question.get_title()
-    #print my_question.get_detail()
-    #print my_question.get_answer_num()
-    #print my_question.get_follower_num()
-    #for topic in my_question.get_topics():
-    #    print topic.get_topic_name()
-    #
-    my_topic_node = TopicNode("http://www.zhihu.com/topic/19587463/organize/entire")
-    print "节点名字:", my_topic_node.get_node_name().encode("utf-8")
+    my_topic = Topic("http://www.zhihu.com/topic/19570098")
+    print my_topic.get_topic_name()
+    print my_topic.get_topic_page_num()
+    print my_topic.get_topic_follower_num()
+    my_question = my_topic.get_questions().next()
+    print my_question.get_title()
+    print my_question.get_detail()
+    print my_question.get_answers_num()
+    print my_question.get_follower_num()
+    for topic in my_question.get_topics():
+        print topic.get_topic_name()
+    
+    my_topic_node = TopicNode("http://www.zhihu.com/topic/19612637/organize/entire")
+    print "节点名字:", my_topic_node.get_node_name()
     print "节点URL:", my_topic_node.get_node_url()
     print "话题ID:", my_topic_node.get_topic_id()
     print "话题URL:", my_topic_node.get_topic_url()
