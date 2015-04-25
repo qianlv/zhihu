@@ -21,7 +21,7 @@ from topic import TopicNode
 class TopicTree(CrawlerDb):
     def __init__(self, root_id = None):
         super(TopicTree, self).__init__()
-        #self.create_table()
+        self.create_table()
         self.que = multiprocessing.Queue()
         self.error_url = []
         self.edges= []
@@ -29,19 +29,20 @@ class TopicTree(CrawlerDb):
         self.dictid = multiprocessing.Manager().dict()
         if root_id == None:
             self.que.put(19776749)
-            self.que.pug(19612637)
-        for rid in root_id:
-            self.que.put(rid)
+            self.que.put(19612637)
+        else:
+            for rid in root_id:
+                self.que.put(rid)
     
     def create_table(self):
         cursor = self.db.cursor()
-        cursor.execute("drop table if exists topic")
-        cursor.execute("drop table if exists topictree")
-        cursor.execute("create table topic          \
+        cursor.execute("drop table if exists ntopic")
+        cursor.execute("drop table if exists ntopictree")
+        cursor.execute("create table ntopic          \
                         (tid int not null,          \
                          tname varchar(60) not null,\
                          primary key(tid))")
-        cursor.execute("create table topictree              \
+        cursor.execute("create table ntopictree              \
                         (edgeid int not null auto_increment,\
                          pid int not null,                  \
                          cid int not null,                  \
@@ -58,7 +59,7 @@ class TopicTree(CrawlerDb):
     def add_topic(self, tids):
         if not tids:
             return
-        sql = "insert into `topic` (`tid`, `tname`) values "
+        sql = "insert into `ntopic` (`tid`, `tname`) values "
         for tid, tname in tids:
             tname = tname.replace("'", "''")
             value_str = "(%d, '%s')," % (tid, tname)
@@ -70,7 +71,7 @@ class TopicTree(CrawlerDb):
     def add_edge(self, edges):
         if not edges:
             return
-        sql = "insert into `topictree` (`pid`, `cid`) values "
+        sql = "insert into `ntopictree` (`pid`, `cid`) values "
         for (pid, cid) in edges:
             value_str = "(%d, %d)," % (pid, cid)
             sql += value_str
