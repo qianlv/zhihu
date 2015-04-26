@@ -30,6 +30,8 @@ class TopicTree(CrawlerDb):
         if root_id == None:
             self.que.put(19776749)
             self.que.put(19612637)
+            self.is_and_set_id(19776749)
+            self.is_and_set_id(19612637)
         else:
             for rid in root_id:
                 self.que.put(rid)
@@ -111,6 +113,7 @@ class TopicTree(CrawlerDb):
                 if not ans:
                     self.error_url.append((pid, url))
             elif self.error_url:
+                logging.info("deal some error url|%d", len(self.error_url));
                 for pid, url in self.error_url:
                     (ans, url) = self.deal(pid, url = url)
                     if not ans:
