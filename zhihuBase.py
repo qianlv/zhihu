@@ -80,6 +80,9 @@ class ZhiHuPage(object):
 
     def __get_session(self):
         global session
+        if session:
+            return
+
         try:
             f = open("config.ini")
         except IOError, e:
@@ -89,9 +92,7 @@ class ZhiHuPage(object):
         config.readfp(f)
         email = config.get("acount", "email")
         passwd = config.get("acount", "passwd")
-
-        if session is None:
-            login(email, passwd)
+        login(email, passwd)
 
     def __deal_url(self, url):
         if url == None:
@@ -104,17 +105,28 @@ class ZhiHuPage(object):
             url.insert(0, "http:")
         return "/".join(url)
 
+    def deal_num(self, num):
+        if num[-1] == 'K':
+            num = int(num[0:-1]) * 1000
+        elif num[-1] == 'W':
+            num = int(num[0:-1]) * 10000
+        else:
+            num = int(num)
+        return num
+
+
     def get_id(self):
         if self.url:
             return int(self.url.split("/")[4])
 
-    def get_page(self, url):
+    def get_page(self, url, params=None):
         global session
         self.__get_session()
         try:
-            response = session.get(url)
+            response = session.get(url, params=params)
             if (response.status_code != 200):
-                logging.warn("Can't get right webpage|%s|%d", url, response.status_code)
+                logging.warn("Can't get right webpage|%s|%d",\
+                            response.url, response.status_code)
                 return None
             soup = BeautifulSoup(response.content)
             return soup
@@ -123,7 +135,7 @@ class ZhiHuPage(object):
         except requests.Timeout, e:
             logging.error("Time out: %s", str(e))
         except Exception, e:
-            logging.error("Session Post Fail: %s", str(e))
+            logging.error("Session Get Fail: %s", str(e))
         return None
 
     def get_post(self, url, data):
@@ -138,7 +150,8 @@ class ZhiHuPage(object):
             }
             response = session.post(url, data=data, headers=headers)
             if (response.status_code != 200):
-                logging.warn("Can't get right webpage|%s|%d", url, response.status_code)
+                logging.warn("Can't get right webpage|%s|%d", \
+                            response.url, response.status_code)
                 return None
             return response 
         except requests.ConnectionError, e:
