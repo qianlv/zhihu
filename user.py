@@ -49,21 +49,21 @@ class User(ZhiHuPage):
 
 
     # 获得赞同数
-    def get_agree_num(self):
+    def get_agrees_num(self):
         if self.url is None:
-            self.agree_num = -1
+            self.agrees_num = -1
 
-        if hasattr(self, "agree_num"):
-            return self.agree_num
+        if hasattr(self, "agrees_num"):
+            return self.agrees_num
         else:
             try:
                 soup = self.soup.find("span", attrs={"class": "zm-profile-header-user-agree"}).strong
-                self.agree_num = int(soup.string)
+                self.agrees_num = int(soup.string)
             except Exception, e:
                 logging.warn(u"无法获取用户获得的赞同数|%s|%s", self.url, unicode(e))
                 return None
             
-        return self.agree_num
+        return self.agrees_num
 
     # 获得感谢数
     def get_thanks_num(self):
@@ -121,12 +121,12 @@ class User(ZhiHuPage):
         return self.action_num
     
     # 关注者人数
-    def get_follower_num(self):
+    def get_followers_num(self):
         if self.url is None:
-            self.follower_num = -1
+            self.followers_num = -1
 
-        if hasattr(self, "follower_num"):
-            return self.follower_num
+        if hasattr(self, "followers_num"):
+            return self.followers_num
         else:
             try:
                 soup = self.soup.find("div", attrs={"class": "zm-profile-side-following zg-clear"})
@@ -138,22 +138,22 @@ class User(ZhiHuPage):
         return self.follower_num
 
     # 关注多少人
-    def get_followee_num(self):
+    def get_followees_num(self):
         if self.url is None:
-            self.followee_num = -1
+            self.followees_num = -1
 
-        if hasattr(self, "followee_num"):
-            return self.followee_num
+        if hasattr(self, "followees_num"):
+            return self.followees_num
         else:
             try:
                 soup = self.soup.find("div", attrs={
                         "class": "zm-profile-side-following zg-clear"})
-                self.followee_num = int(soup.find_all("strong")[0].string)
+                self.followees_num = int(soup.find_all("strong")[0].string)
             except Exception, e:
                 logging.warn(u"无法获取用户关注多少人|%s|%s", self.url, unicode(e))
                 return 0
 
-        return self.followee_num
+        return self.followees_num
 
     # 获取我关注的人信息
     def get_followees(self):
@@ -209,22 +209,21 @@ class User(ZhiHuPage):
                 return
 
     # 关注话题数
-    def get_topic_num(self): 
+    def get_topics_num(self): 
         if self.url is None:
-            self.topic_num = -1
+            self.topics_num = -1
         
-        if hasattr(self, "topic_num"):
-            return self.topic_num
+        if hasattr(self, "topics_num"):
+            return self.topics_num
         try:
             url = self.url.replace(ZHI_HU_URL, "") + "/topics"
-            print url
             
-            self.topic_num = get_number_from_string(
+            self.topics_num = get_number_from_string( \
                     self.soup.find("a", href=url).strong.string)[0]
         except Exception, e:
             logging.warn(u"无法获取用户关注话题数|%s|%s", self.url, unicode(e))
             return 0 
-        return self.topic_num
+        return self.topics_num
 
     # 关注的话题
     def get_topics(self):
@@ -352,11 +351,71 @@ class User(ZhiHuPage):
                 yield get_url
                 return 
 
+class UserBrief(ZhiHuPage):
+    def __init__(self, user_id):
+        params = {"url_token": user_id}
+        params = {"params": json.dumps(params)}
+        self.user_id = user_id
+        self.url = ZHI_HU_URL + "/node/MemberProfileCardV2"
+        self.soup = self.get_page(self.url, params = params)
+
+    def get_user_id(self):
+        return self.user_id
+
+    def get_user_name(self):
+        try:
+            self.user_name = self.soup.find("span", \
+                            class_ = "name").string
+        except AttributeError, e:
+            logging.warn("Can't get user name|%s|%s", user_id, str(e))
+            return None
+        return self.user_name
+
+    
+    def get_answers_num(self):
+        if hasattr(self, "answers_num"):
+            return self.answers_num
+
+        try:
+            self.answers_num =self.soup.find_all( \
+                            "span", class_ = "value")[0].string 
+            self.answers_num = self.deal_num(self.answers_num)
+        except (KeyError, AttributeError), e:
+            logging.warn("Can't get user's answer num|%s|%s", user_id, str(e))
+            return None
+        return self.answers_num
+
+    def get_posts_num(self):
+        if hasattr(self, "posts_num"):
+            return self.posts_num
+
+        try:
+            self.posts_num =self.soup.find_all( \
+                            "span", class_ = "value")[1].string 
+            self.posts_num = self.deal_num(self.posts_num)
+        except (KeyError, AttributeError), e:
+            logging.warn("Can't get user's post num|%s|%s", user_id, str(e))
+            return None
+        return self.posts_num
+
+    def get_followers_num(self):
+        if hasattr(self, "followers_num"):
+            return self.followers_num
+
+        try:
+            self.followers_num =self.soup.find_all( \
+                            "span", class_ = "value")[2].string 
+            self.followers_num = self.deal_num(self.followers_num)
+        except (KeyError, AttributeError), e:
+            logging.warn("Can't get user's followers num|%s|%s", user_id, str(e))
+            return None
+        return self.followers_num
+    
 
 
 if __name__ == '__main__':
     #user = User("http://www.zhihu.com/people/wang-yi-zhu-39-58") 
-    user = User("http://www.zhihu.com/people/zen-kou/") 
+    #user = User("http://www.zhihu.com/people/zen-kou/") 
     #user = User("http://www.zhihu.com/people/mo-zhi/") 
     #user = User("http://www.zhihu.com/people/lishuhang/") 
     #user = User("http://www.zhihu.com/people/chengyuan") 
@@ -378,11 +437,17 @@ if __name__ == '__main__':
     #    print q.get_title()
     #    print '--------'
 
-    for q in user.get_asks():
-        print q.get_title()
-        print q.get_answers_num()
-        print q.get_follower_num() 
+    #for q in user.get_asks():
+    #    print q.get_title()
+    #    print q.get_answers_num()
+    #    print q.get_follower_num() 
 
-    for coll in user.get_collections():
-        print coll.get_collection_name()
+    #for coll in user.get_collections():
+    #    print coll.get_collection_name()
+
+    ub = UserBrief("zen-kou")
+    print ub.get_user_name()
+    print ub.get_answers_num()
+    print ub.get_posts_num()
+    print ub.get_followers_num()
 
