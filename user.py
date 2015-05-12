@@ -170,7 +170,7 @@ class User(ZhiHuPage):
             yield
         else:
             page_num = (num - 1) / 20 + 1
-            follow_soup = self.get_page(url) 
+            follow_soup = BeautifulSoup(self.get_page(url).content)
             try:
                 follow_tag = follow_soup.find("div", attrs={"class": "zh-general-list clearfix"})
                 follow_a = follow_tag.find_all("a", attrs={"class": "zm-item-link-avatar"})
@@ -233,7 +233,7 @@ class User(ZhiHuPage):
             post_url = self.url + "/topics"
             num = self.get_topic_num()
             page_num = (num - 1) / 20 + 1
-            topic_soup = self.get_page(post_url) 
+            topic_soup = BeautifulSoup(self.get_page(post_url).content)
             try:
                 topic_tag = topic_soup.find("div", 
                             attrs={"id": "zh-profile-topic-list"})
@@ -303,7 +303,7 @@ class User(ZhiHuPage):
         for i in range(1, page + 1):
             try:
                 get_url = "%s/answers?page=%d" % (self.url, i)
-                soup = self.get_page(get_url)
+                soup = BeautifulSoup(self.get_page(get_url).content)
                 answer_list = soup.find("div", id="zh-profile-answer-list").find_all("a", class_="question_link")
                 for item in answer_list:
                     url = ZHI_HU_URL + item.get("href")
@@ -322,7 +322,7 @@ class User(ZhiHuPage):
         for i in range(1, page + 1):
             try:
                 get_url = "%s/asks?page=%d" % (self.url, i)
-                soup = self.get_page(get_url)
+                soup = BeautifulSoup(self.get_page(get_url).content)
                 ask_list = soup.find("div", id="zh-profile-ask-list").find_all("a", class_="question_link")
                 for item in ask_list:
                     url = ZHI_HU_URL + item.get("href")
@@ -341,7 +341,7 @@ class User(ZhiHuPage):
         for i in range(1, page + 1):
             try:
                 get_url = "%s/collections?page=%d" % (self.url, i)
-                soup = self.get_page(get_url)
+                soup = BeautifulSoup(self.get_page(get_url).content)
                 collection_list = soup.find_all("a", class_="zm-profile-fav-item-title")
                 for item in collection_list:
                     url = ZHI_HU_URL + item.get("href")
@@ -357,7 +357,7 @@ class UserBrief(ZhiHuPage):
         params = {"params": json.dumps(params)}
         self.user_id = user_id
         self.url = ZHI_HU_URL + "/node/MemberProfileCardV2"
-        self.soup = self.get_page(self.url, params = params)
+        self.soup = BeautifulSoup(self.get_page(self.url, params = params).content)
 
     def get_user_id(self):
         return self.user_id
