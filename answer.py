@@ -53,48 +53,46 @@ class Answer(ZhiHuPage):
             return None
         return user.User(auther_url)
 
-    def get_voter_page(self):
-        if not hasattr(self, "voter_soup"):
+    def get_voter_page(self, get_url = None):
+        if get_url is None:
             try:
                 answer_anchor = self.soup.find("a", \
                         class_ = "zg-anchor-hidden").get("name")
                 anchor = answer_anchor.split('-')[1]
+                get_url = "%s/answer/%s/voters_profile" % (ZHI_HU_URL, anchor)
             except (KeyError, AttributeError), e:
                 logging.warn("Can't find anchor|%s|%s",self.url, str(e))
-                self.voter_soup = None
-                return self.voter_soup
+                return None
 
-            params = {"answer_id": anchor}
-            params = {"params": json.dumps(params)}
-            get_url = ZHI_HU_URL + "/node/AnswerFullVoteInfoV2"
-            try:
-                self.voter_soup = self.get_page(get_url, params=params)
-            except Exception, e:
-                logging.warn("Can't get content|%s|%s|%s", self.url, get_url, str(e))
-                self.voter_soup = None
-                return self.voter_soup
-        return self.voter_soup
+        return self.get_page(get_url)
+
     # 赞同数
     def get_voter_num(self):
         if not hasattr(self, "voter_num"):
-            voter_soup = self.get_voter_page()
+            voters_soup = self.get_voter_page()
             try:
-                self.voter_num = voter_soup.find("div").get("data-votecount")
-            except AttributeError, e:
+                self.voter_num = voters_soup.json()['paging']['total']
+            except (AttributeError, KeyError), e:
                 logging.warn("Can't get voter num|%s|%s", self.url, str(e))
                 return None
         return self.voter_num
 
     # 赞同者
     def get_voters(self):
-        voter_soup = self.get_voter_page()
-        try:
-            voter_items = voter_soup.find_all("a")
-            return [(item.get("title"), ZHI_HU_URL + item.get("href")) 
-                    for item in voter_items]
-        except AttributeError, e:
-            logging.warn("Can't get voter|%s|%s", self.url, str(e))
-            return None
+        get_url = None
+        while True:
+            if get_url == "":
+                break
+            voter_soup = self.get_voter_page(get_url)
+            get_url = ZHI_HU_URL + voter_soup.json()['paging']['next']
+            for item in voter_soup.json()['payload']:
+                try:
+                    soup = BeautifulSoup(item).find('a')
+                    yield (soup.get('title'), ZHI_HU_URL + soup.get('href'))
+                except AttributeError, e:
+                    logging.warn("Can't get voter|%s|%s", self.url, str(e))
+                    return 
+
     def get_voters_detail(self):
         voters = self.get_voters()
         for voter in voters:
@@ -131,14 +129,14 @@ class Answer(ZhiHuPage):
 
 if __name__ == '__main__':
     answer = Answer("http://www.zhihu.com/question/28626263/answer/41992632")
-    #this_question = answer.get_question()
-    #auther = answer.get_auther() 
+    this_question = answer.get_question()
+    auther = answer.get_auther() 
     #print "题目:", this_question.get_title(), this_question.get_detail()
     #print "作者:", auther.get_user_name()
     print "赞同数:", answer.get_voter_num()
-    #print "发布时间:", answer.get_answer_time().strftime("%Y-%m-%d")
+    print "发布时间:", answer.get_answer_time().strftime("%Y-%m-%d")
     #print answer.get_content()
-    #for ur in answer.get_voters():
-    #    print ur[0], ur[1]
-    #for ur in answer.get_voters_detail():
-    #    print ur.get_user_name()
+    for ur in answer.get_voters():
+        print ur[0], ur[1]
+    for ur in answer.get_voters_detail():
+        print ur.get_user_name()
