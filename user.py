@@ -14,14 +14,12 @@ logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"),
                     format = logging_format
                     )
 
+
 from bs4 import BeautifulSoup
+
 from zhihuBase import ZhiHuPage, get_number_from_string
 from zhihuBase import ZHI_HU_URL
-import answer
-import question
-import topic
-import collection
-
+import answer, question, topic, collection
 
 class User(ZhiHuPage):
     def __init__(self, url, name = None, user_id = None):

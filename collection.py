@@ -5,13 +5,14 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 import re
+import os
+print os.path.dirname(__file__)
 import logging
+
 from bs4 import BeautifulSoup
 
 from zhihuBase import ZhiHuPage, ZHI_HU_URL, remove_blank_lines
-import answer
-import question
-import user
+import answer, question, user
 
 class Collection(ZhiHuPage):
     def __init__(self, url, name=None, collection_id = None, answer_num = None):
@@ -142,7 +143,7 @@ if __name__ == '__main__':
     print my_coll.get_collection_url()
     print 'creator:'
     print my_coll.get_creator().get_user_name()
-    print my_coll.get_creator().get_agree_num()
+    print my_coll.get_creator().get_agrees_num()
 
 
     print 'answer:'

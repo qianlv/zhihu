@@ -71,7 +71,7 @@ class Answer(ZhiHuPage):
         if not hasattr(self, "voter_num"):
             voters_soup = self.get_voter_page()
             try:
-                self.voter_num = voters_soup.json()['paging']['total']
+                self.voter_num = int(voters_soup.json()['paging']['total'])
             except (AttributeError, KeyError), e:
                 logging.warn("Can't get voter num|%s|%s", self.url, str(e))
                 return None
