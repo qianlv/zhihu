@@ -93,7 +93,7 @@ class Topic(ZhiHuPage):
         for page in xrange(1, self.get_topic_page_num() + 1):
             url = self.url + "?page=" + str(page)
             try:
-                page_soup = self.get_page(url) 
+                page_soup = BeautifulSoup(self.get_page(url).content)
                 question_links = page_soup.find_all("a", 
                         attrs={"target": "_blank", "class": "question_link"})
             except Exception, e:

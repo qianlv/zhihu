@@ -98,7 +98,7 @@ class Collection(ZhiHuPage):
     def get_followers(self):
         try:
             follower_url = self.url + "/followers"
-            follower_soup = self.get_page(follower_url)
+            follower_soup = BeautifulSoup(self.get_page(follower_url).content)
             follower_list = follower_soup.find_all("a", class_="zg-link")
             for item in follower_list:
                 yield user.User(item.get("href"), name = item.string)
