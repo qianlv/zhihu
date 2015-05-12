@@ -74,7 +74,7 @@ class ZhiHuPage(object):
         if soup:
             self.soup = soup
         elif url:
-            self.soup = self.get_page(self.url)
+            self.soup = BeautifulSoup(self.get_page(self.url).content)
         else:
             self.soup = None
 
@@ -128,14 +128,13 @@ class ZhiHuPage(object):
                 logging.warn("Can't get right webpage|%s|%d",\
                             response.url, response.status_code)
                 return None
-            soup = BeautifulSoup(response.content)
-            return soup
+            return response
         except requests.ConnectionError, e:
-            logging.error("Network Problem: %s", str(e))
+            logging.error("Network Problem|%s|%s", url, str(e))
         except requests.Timeout, e:
-            logging.error("Time out: %s", str(e))
+            logging.error("Time out|%s|%s", url, str(e))
         except Exception, e:
-            logging.error("Session Get Fail: %s", str(e))
+            logging.error("Session Get Fail|%s|%s", url, str(e))
         return None
 
     def get_post(self, url, data):
@@ -155,12 +154,13 @@ class ZhiHuPage(object):
                 return None
             return response 
         except requests.ConnectionError, e:
-            logging.error("Network Problem: %s", str(e))
+            logging.error("Network Problem|%s|%s", url, str(e))
         except requests.Timeout, e:
-            logging.error("Time out: %s", str(e))
+            logging.error("Time out|%s|%s", url, str(e))
         except Exception, e:
-            logging.error("Session Post Fail: %s", str(e))
+            logging.error("Session Post Fail|%s|%s", url, str(e))
         return None
+    
 
 import MySQLdb
 
@@ -176,7 +176,6 @@ class CrawlerDb(object):
         dbname   = config.get("mysql", "dbname")
         username = config.get("mysql", "username")
         passwd   = config.get("mysql", "passwd")
-        print dbname, username, passwd
         self.db = MySQLdb.connect("localhost", username, passwd, dbname, charset="utf8")
     
     def __del__(self):
