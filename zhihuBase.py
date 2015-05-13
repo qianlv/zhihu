@@ -41,6 +41,7 @@ def is_num_by_except(num):
 
 import requests
 logging.getLogger("requests").setLevel(logging.WARNING)
+
 from bs4 import BeautifulSoup
 
 session = None
