@@ -33,8 +33,7 @@ class TopicTree(CrawlerDb):
             self.is_and_set_id(19776749)
             self.is_and_set_id(19612637)
         else:
-            for rid in root_id:
-                self.que.put(rid)
+            map(self.que.put, root_id)
     
     def create_table(self):
         cursor = self.db.cursor()
