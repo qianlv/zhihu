@@ -45,7 +45,7 @@ class Topic(ZhiHuPage):
             soup = self.soup.find("div", 
                    attrs={"class": "topic-name", "id": "zh-topic-title"})
             self.topic_name = soup.h1.get_text()
-        except Exception, e:
+        except (AttributeError, ValueError), e:
             logging.warn("Topic get_topic_name error|%s|%s", self.url, str(e))
             return None 
 
@@ -64,7 +64,7 @@ class Topic(ZhiHuPage):
                                            if is_num_by_except(num)])
             else:
                 self.topic_page_num = 1
-        except Exception, e:
+        except (AttributeError, ValueError), e:
             logging.warn("Topic get_topic_page_num error|%s|%s", 
                             self.url, str(e))
             return None 
@@ -82,7 +82,7 @@ class Topic(ZhiHuPage):
                 self.topic_follower_num = int(num)
             else:
                 self.topic_follower_num = 0
-        except Exception, e:
+        except (AttributeError, ValueError), e:
             logging.warn("Topic get_topic_follower_num error|%s|%s", self.url, str(e))
             return None 
 
@@ -96,7 +96,7 @@ class Topic(ZhiHuPage):
                 page_soup = BeautifulSoup(self.get_page(url).content)
                 question_links = page_soup.find_all("a", 
                         attrs={"target": "_blank", "class": "question_link"})
-            except Exception, e:
+            except AttributeError, e:
                 logging.warn("Topic get_questions error|%s|%s", self.url, str(e))
                 return 
 
@@ -124,7 +124,7 @@ class TopicNode(ZhiHuPage):
             try:
                 soup = self.soup.find("h1", class_="zm-editable-content")
                 self.node_name = soup.string
-            except Exception, e:
+            except AttributeError, e:
                 logging.warn("TopicNode get_node_name error|%s|%s", 
                             self.url if self.url else '', str(e))
 
@@ -154,7 +154,7 @@ class TopicNode(ZhiHuPage):
         try:
             xsrf = self.soup.find("input", 
                     attrs={"name":"_xsrf", "type":"hidden"}).get("value")
-        except Exception, e:
+        except AttributeError, e:
             logging.warn("TopicNode get_children_nodes can't find xsrf value \
                           |%s|%s", self.url if self.url else '', str(e))
             # 返回出错的url用于重新处理
@@ -171,7 +171,7 @@ class TopicNode(ZhiHuPage):
                 response = self.get_post(post_url, data)
                 msg = response.json()["msg"]
                 topic_list = msg[1]
-            except Exception, e:
+            except (AttributeError, KeyError), e:
                 logging.warn("TopicNode get_children_nodes post_url and self_url \
                                 |%s|%s|%s", post_url, self.url, str(e))
                 # 返回出错的url用于重新处理

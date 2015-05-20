@@ -15,6 +15,7 @@ logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"),
                     )
 
 import multiprocessing
+
 from zhihuBase import get_number_from_string, ZHI_HU_URL, CrawlerDb
 from topic import TopicNode
 
@@ -39,15 +40,17 @@ class TopicTree(CrawlerDb):
         cursor = self.db.cursor()
         cursor.execute("drop table if exists ntopic")
         cursor.execute("drop table if exists ntopictree")
-        cursor.execute("create table ntopic          \
-                        (tid int not null,          \
-                         tname varchar(60) not null,\
-                         primary key(tid))")
-        cursor.execute("create table ntopictree              \
-                        (edgeid int not null auto_increment,\
-                         pid int not null,                  \
-                         cid int not null,                  \
-                         primary key(edgeid))")
+        cursor.execute("create table ntopic "
+                        "(tid int not null, "
+                        "tname varchar(60) not null, "
+                        "primary key(tid) "
+                        ") ENGINE = InnoDB ")
+        cursor.execute("create table ntopictree "
+                       "(edgeid int not null auto_increment, "
+                       "pid int not null, "
+                       "cid int not null, "
+                       "primary key(edgeid) "
+                       ") ENGINE = InnoDB")
 
     def is_and_set_id(self, tid):
         with self.lock:

@@ -27,7 +27,7 @@ class Collection(ZhiHuPage):
                 self.name = self.soup.find("h2", 
                         id="zh-fav-head-title").string
                 self.name = remove_blank_lines(self.name)
-            except Exception, e:
+            except AttributeError, e:
                 logging.warn("Collection get_collection_name error|%s|%s", 
                                 self.url, str(e))
                 return None
@@ -46,7 +46,7 @@ class Collection(ZhiHuPage):
             soup = self.soup.find("h2", 
                     class_="zm-list-content-title")
             creator_name = soup.a.string
-        except Exception, e:
+        except AttributeError, e:
             logging.warn("Collection get_creator error|%s|%s", 
                            self.url, str(e))
             return None
@@ -58,7 +58,7 @@ class Collection(ZhiHuPage):
             try:
                 answer_urls = self.soup.find_all("a", class_="answer-date-link") 
                 self.answer_num = len(answer_urls)
-            except Exception, e:
+            except AttributeError, e:
                 logging.warn("Collection get_answers_num error|%s|%s", 
                                self.url, str(e))
                 return None
@@ -71,7 +71,7 @@ class Collection(ZhiHuPage):
                 self.answer_num = len(answer_urls)
             for item in answer_urls:
                 yield answer.Answer(ZHI_HU_URL + item.get("href"))
-        except Exception, e:
+        except (AttributeError, ValueError), e:
             logging.warn("Collection get_answers error|%s|%s", 
                            self.url, str(e))
             return 
@@ -88,7 +88,7 @@ class Collection(ZhiHuPage):
             try:
                 soup = self.soup.find("a", href=follower_url)
                 self.followers_num = int(soup.string)
-            except Exception, e:
+            except (AttributeError, KeyError), e:
                 logging.warn("Collection get_followers_num error|%s|%s", 
                                self.url, str(e))
                 return None
@@ -103,7 +103,7 @@ class Collection(ZhiHuPage):
             follower_list = follower_soup.find_all("a", class_="zg-link")
             for item in follower_list:
                 yield user.User(item.get("href"), name = item.string)
-        except Exception, e:
+        except (AttributeError, ValueError), e:
             logging.warn("Collection get_followers error|%s|%s", 
                            self.url, str(e))
             return 
@@ -130,7 +130,7 @@ class Collection(ZhiHuPage):
                                 class_="zg-link")
                 for item in follower_list:
                     yield user.User(item.get("href"), name = item.string)
-        except Exception, e:
+        except (AttributeError, ValueError), e:
             logging.warn("Collection get_followers error|%s|%s", 
                            self.url, str(e))
             return 
