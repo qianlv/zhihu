@@ -9,7 +9,6 @@ import os
 import re
 import logging
 
-from ConfigParser import SafeConfigParser
 
 # 常量
 ZHI_HU_URL = "http://www.zhihu.com"
@@ -44,6 +43,16 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 from bs4 import BeautifulSoup
 
+
+from ConfigParser import SafeConfigParser, NoSectionError
+def get_config(sections_name, config_file = "config.ini"):
+    def get_key(key):
+        f = open(config_file)
+        config = SafeConfigParser()
+        config.readfp(f)
+        return config.get(sections_name, key)
+    return get_key
+
 session = None
 
 def login(email, passwd):
@@ -75,7 +84,7 @@ class ZhiHuPage(object):
         if soup:
             self.soup = soup
         elif url:
-            self.soup = BeautifulSoup(self.get_page(self.url).content)
+            self.soup = self.get_soup(self.get_page(self.url))
         else:
             self.soup = None
 
@@ -83,16 +92,14 @@ class ZhiHuPage(object):
         global session
         if session:
             return
-
         try:
-            f = open("config.ini")
-        except IOError, e:
-            logging.error("You must be set config.ini|%d|%s", os.getpid(), str(e))
-            exit("You must be set config.ini")
-        config = SafeConfigParser()
-        config.readfp(f)
-        email = config.get("acount", "email")
-        passwd = config.get("acount", "passwd")
+            config = get_config("acount")
+            email = config("email")
+            passwd = config("passwd")
+        except (IOError, NoSectionError), e:
+            logging.error('You must be set right config.ini|%s', str(e))
+            exit("You must be set right config.ini")
+
         login(email, passwd)
 
     def __deal_url(self, url):
@@ -120,12 +127,18 @@ class ZhiHuPage(object):
         if self.url:
             return int(self.url.split("/")[4])
 
+    def get_soup(self, response):
+        try:
+            return BeautifulSoup(response.content)
+        except AttributeError, e:
+            logging.warn("This is url is error %s|%s", self.url, str(e))
+
     def get_page(self, url, params=None):
         global session
         self.__get_session()
         try:
             response = session.get(url, params=params)
-            if (response.status_code != 200):
+            if response.status_code != 200:
                 logging.warn("Can't get right webpage|%s|%d",\
                             response.url, response.status_code)
                 return None
@@ -149,7 +162,7 @@ class ZhiHuPage(object):
                 'Referer': url,
             }
             response = session.post(url, data=data, headers=headers)
-            if (response.status_code != 200):
+            if response.status_code != 200:
                 logging.warn("Can't get right webpage|%s|%d", \
                             response.url, response.status_code)
                 return None
@@ -168,15 +181,14 @@ import MySQLdb
 class CrawlerDb(object):
     def __init__(self):
         try:
-            f = open("config.ini")
-        except IOError, e:
-            logging.error("You must be set config.ini|%d|%s", os.getpid(), str(e))
-            exit("You must be set config.ini")
-        config = SafeConfigParser()
-        config.readfp(f)
-        dbname   = config.get("mysql", "dbname")
-        username = config.get("mysql", "username")
-        passwd   = config.get("mysql", "passwd")
+            config = get_config("mysql")
+            dbname   = config("dbname")
+            username = config("username")
+            passwd   = config("passwd")
+        except (IOError, NoSectionError), e:
+            logging.error("You must be set right config.ini|%s", str(e))
+            exit("You must be set right config.ini")
+
         self.db = MySQLdb.connect("localhost", username, passwd, dbname, charset="utf8")
     
     def __del__(self):
