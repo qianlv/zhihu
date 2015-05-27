@@ -125,7 +125,7 @@ class ZhiHuPage(object):
 
     def get_id(self):
         if self.url:
-            return int(self.url.split("/")[4])
+            return self.url.split("/")[4]
 
     def get_soup(self, response):
         try:
