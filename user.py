@@ -29,6 +29,11 @@ class User(ZhiHuPage):
         self.user_id = user_id
         super(User, self).__init__(url)
 
+    def __nonzero__(self):
+        if self.url is None or self.soup is None:
+            return False
+        return True
+
     # 用户名
     def get_user_name(self):
         if self.url is None:
@@ -154,38 +159,51 @@ class User(ZhiHuPage):
         return self.followees_num
 
     # 获取我关注的人信息
-    def get_followees(self, threshold = -1):
+    def get_followees(self, threshold = 2):
         return self.__get_followees_or_follwers(
                 self.url + "/followees", self.get_followees_num(), threshold)
 
+    def get_followees_user(self, threshold = 2):
+        followees_iter = get_followers(threshold)
+        for url, name in followees_iter:
+            yield user.User(url, name = name)
+
     # 获取关注我的人的信息
-    def get_followers(self, threshold = -1):
+    def get_followers(self, threshold = 2):
         return self.__get_followees_or_follwers(
                 self.url + "/followers", self.get_followers_num(), threshold)
+
+    def get_followers_user(self, threshold = 2):
+        followers_iter = self.get_followers(threshold)
+        for url, name in followers_iter:
+            yield user.User(url, name = name)
 
     def __get_followees_or_follwers(self, url, num, threshold):
         if self.url is None:
             yield
         else:
+            if num == 0:
+                return
             page_num = (num - 1) / 20 + 1
-            follow_soup = BeautifulSoup(self.get_page(url).content)
+            follow_soup = self.get_soup(self.get_page(url))
             try:
                 follow_tag = follow_soup.find("div", attrs={"class": "zh-general-list clearfix"})
                 follow_div = follow_tag.find_all("div", attrs={"class": "zm-list-content-medium"})
                 for follow_user in follow_div:
                     all_a_tag = follow_user.find_all("a")
                     threshold_list = [get_number_from_string(item.string)[0] 
-                                      for item in all_a_tag[1:]]
+                            for item in all_a_tag[1:]]
                     threshold_value = reduce(lambda x, y: x + (1 if y > 0 else 0), 
-                                            threshold_list, 0)
+                            threshold_list, 0)
                     if threshold_value < threshold or \
-                        all_a_tag[0].get("title") == u'[已重置]':
-                        continue
+                            all_a_tag[0].get("title") == u'[已重置]':
+                                continue
                     url = all_a_tag[0].get("href")
-                    yield User(url, name = all_a_tag[0].get("title"))
-            except (ValueError, AttributeError), e:
-                logging.warn(u"无法获取用户关注者和被关注者信息|%s|%s|%s", url, self.url, unicode(e))
-                yield (url, 0)
+                    #yield User(url, name = all_a_tag[0].get("title"))
+                    yield (url, all_a_tag[0].get("title"))
+            except (ValueError, AttributeError, KeyError), e:
+                logging.warn(u"无法获取用户关注者和被关注者信息|%s|%s|%s", url, self.url, str(e))
+                #yield (url, 0)
                 return
 
             if page_num <= 1:
@@ -199,44 +217,45 @@ class User(ZhiHuPage):
                 for offset in range(20, page_num * 20 + 20, 20):
                     data_init["params"]["offset"] = offset
                     data = {
-                        "_xsrf": value,
-                        "method": "next",
-                        "params": json.dumps(data_init["params"])
-                        }
+                            "_xsrf": value,
+                            "method": "next",
+                            "params": json.dumps(data_init["params"])
+                            }
                     response = self.get_post(post_url, data) 
                     for content in response.json()['msg']:
                         soup = BeautifulSoup(content)
                         follow_div = soup.find("div", attrs={"class": "zm-list-content-medium"})
                         all_a_tag = follow_div.find_all("a")
                         threshold_list = [get_number_from_string(item.string)[0] 
-                                          for item in all_a_tag[1:]]
+                                for item in all_a_tag[1:]]
                         threshold_value = reduce(lambda x, y: x + (1 if y > 0 else 0), 
-                                                threshold_list, 0)
+                                threshold_list, 0)
                         if threshold_value < threshold or \
-                            all_a_tag[0].get("title") == u'[已重置]':
-                            continue
+                                all_a_tag[0].get("title") == u'[已重置]':
+                                    continue
                         url = all_a_tag[0].get("href")
-                        yield User(url, all_a_tag[0].get("title"))
+                        #yield User(url, all_a_tag[0].get("title"))
+                        yield (url, all_a_tag[0].get("title"))
             except (AttributeError, ValueError, KeyError), e:
-                logging.warn(u"无法获取用户关注者和被关注者信息|%s|%s|%s", post_url, self.url, unicode(e))
-                yield (post_url, offset)
+                logging.warn(u"无法获取用户关注者和被关注者信息|%s|%s|%s", post_url, self.url, str(e))
+                #yield (post_url, offset)
                 return
 
     # 关注话题数
     def get_topics_num(self): 
         if self.url is None:
             self.topics_num = -1
-        
+
         if hasattr(self, "topics_num"):
             return self.topics_num
         try:
             url = self.url.replace(ZHI_HU_URL, "") + "/topics"
-            
+
             self.topics_num = get_number_from_string( \
                     self.soup.find("a", href=url).strong.string)[0]
         except (AttributeError, ValueError, KeyError), e:
-            logging.warn(u"无法获取用户关注话题数|%s|%s", self.url, unicode(e))
-            return 0 
+            #logging.warn(u"无法获取用户关注话题数|%s|%s", self.url, unicode(e))
+            self.topics_num = 0 
         return self.topics_num
 
     # 关注的话题
@@ -247,12 +266,12 @@ class User(ZhiHuPage):
             post_url = self.url + "/topics"
             num = self.get_topic_num()
             page_num = (num - 1) / 20 + 1
-            topic_soup = BeautifulSoup(self.get_page(post_url).content)
+            topic_soup = self.get_soup(self.get_page(post_url))
             try:
                 topic_tag = topic_soup.find("div", 
-                            attrs={"id": "zh-profile-topic-list"})
+                        attrs={"id": "zh-profile-topic-list"})
                 topic_a = topic_tag.find_all("a", 
-                            attrs={"class": "zm-list-avatar-link"})
+                        attrs={"class": "zm-list-avatar-link"})
                 for a in topic_a:
                     url = ZHI_HU_URL + a.get("href")
                     yield topic.Topic(url)
@@ -269,21 +288,21 @@ class User(ZhiHuPage):
                 value = input_tag.get("value")
                 for offset in range(20, page_num * 20 + 20, 20):
                     data = {
-                        "_xsrf": value,
-                        "offset": offset,
-                        "start": 0
-                        }
+                            "_xsrf": value,
+                            "offset": offset,
+                            "start": 0
+                            }
                     response = self.get_post(post_url, data) 
                     content = response.json()['msg'][1]
                     soup = BeautifulSoup(content)
                     topic_a = soup.find_all("a", 
-                                attrs={"class": "zm-list-avatar-link"})
+                            attrs={"class": "zm-list-avatar-link"})
                     for a in topic_a:
                         url = ZHI_HU_URL + a.get("href")
                         yield topic.Topic(url)
             except (AttributeError, ValueError, KeyError), e:
-                logging.warn(u"无法获取用户关注话题|%s|%d|%s|%s", post_url, offset, self.url, unicode(e))
-                yield (post_url, offset)
+                logging.warn(u"无法获取用户关注话题|%s|%d|%s|%s", post_url, offset, self.url, str(e))
+                #yield (post_url, offset)
                 return 
 
 
@@ -292,17 +311,17 @@ class User(ZhiHuPage):
     def get_follow_posts_num(self):
         if self.url is None:
             self.follow_posts_num = -1
-        
+
         if hasattr(self, "follow_posts_num"):
             return self.follow_posts_num
 
         try:
             url = self.url.replace(ZHI_HU_URL, "") + "/columns/followed"
             self.follow_posts_num = get_number_from_string(
-                        self.soup.find("a", href=url).strong.string)[0]
+                    self.soup.find("a", href=url).strong.string)[0]
         except (AttributeError, ValueError, KeyError), e:
-            logging.warn(u"无法获取用户关注专栏数|%s|%s", self.url, unicode(e))
-            return 0
+            #logging.warn(u"无法获取用户关注专栏数|%s|%s", self.url, unicode(e))
+            self.follow_posts_num = 0
         return self.follow_posts_num
 
     # 回答的问题
@@ -314,9 +333,9 @@ class User(ZhiHuPage):
         for i in range(1, page + 1):
             try:
                 get_url = "%s/answers?page=%d" % (self.url, i)
-                soup = BeautifulSoup(self.get_page(get_url).content)
+                soup = self.get_soup(self.get_page(get_url))
                 answer_list = soup.find("div", id="zh-profile-answer-list"). \
-                                find_all("a", class_="question_link")
+                        find_all("a", class_="question_link")
                 for item in answer_list:
                     url = ZHI_HU_URL + item.get("href")
                     yield answer.Answer(url)
@@ -334,9 +353,9 @@ class User(ZhiHuPage):
         for i in range(1, page + 1):
             try:
                 get_url = "%s/asks?page=%d" % (self.url, i)
-                soup = BeautifulSoup(self.get_page(get_url).content)
+                soup = self.get_soup(self.get_page(get_url))
                 ask_list = soup.find("div", id="zh-profile-ask-list"). \
-                            find_all("a", class_="question_link")
+                        find_all("a", class_="question_link")
                 for item in ask_list:
                     url = ZHI_HU_URL + item.get("href")
                     yield question.Question(url)
@@ -349,12 +368,12 @@ class User(ZhiHuPage):
     def get_collections(self):
         if self.url is None:
             return
-        
+
         page = (self.get_collections_num() + 19) / 20
         for i in range(1, page + 1):
             try:
                 get_url = "%s/collections?page=%d" % (self.url, i)
-                soup = BeautifulSoup(self.get_page(get_url).content)
+                soup = self.get_soup(self.get_page(get_url))
                 collection_list = soup.find_all("a", class_="zm-profile-fav-item-title")
                 for item in collection_list:
                     url = ZHI_HU_URL + item.get("href")
@@ -370,7 +389,10 @@ class UserBrief(ZhiHuPage):
         params = {"params": json.dumps(params)}
         self.user_id = user_id
         self.url = ZHI_HU_URL + "/node/MemberProfileCardV2"
-        self.soup = BeautifulSoup(self.get_page(self.url, params = params).content)
+        try:
+            self.soup = BeautifulSoup(self.get_page(self.url, params = params).content)
+        except AttributeError, e:
+            logging.warn("This is url is error %s|%s", self.url, str(e))
 
     def get_user_id(self):
         return self.user_id
@@ -378,20 +400,20 @@ class UserBrief(ZhiHuPage):
     def get_user_name(self):
         try:
             self.user_name = self.soup.find("span", \
-                            class_ = "name").string
+                    class_ = "name").string
         except AttributeError, e:
             logging.warn("Can't get user name|%s|%s", user_id, str(e))
             return None
         return self.user_name
 
-    
+
     def get_answers_num(self):
         if hasattr(self, "answers_num"):
             return self.answers_num
 
         try:
             self.answers_num =self.soup.find_all( \
-                            "span", class_ = "value")[0].string 
+                    "span", class_ = "value")[0].string 
             self.answers_num = self.deal_num(self.answers_num)
         except (KeyError, AttributeError), e:
             logging.warn("Can't get user's answer num|%s|%s", user_id, str(e))
@@ -404,7 +426,7 @@ class UserBrief(ZhiHuPage):
 
         try:
             self.posts_num =self.soup.find_all( \
-                            "span", class_ = "value")[1].string 
+                    "span", class_ = "value")[1].string 
             self.posts_num = self.deal_num(self.posts_num)
         except (KeyError, AttributeError), e:
             logging.warn("Can't get user's post num|%s|%s", user_id, str(e))
@@ -417,25 +439,30 @@ class UserBrief(ZhiHuPage):
 
         try:
             self.followers_num =self.soup.find_all( \
-                            "span", class_ = "value")[2].string 
+                    "span", class_ = "value")[2].string 
             self.followers_num = self.deal_num(self.followers_num)
         except (KeyError, AttributeError), e:
             logging.warn("Can't get user's followers num|%s|%s", user_id, str(e))
             return None
         return self.followers_num
-    
+
 
 
 if __name__ == '__main__':
     #user = User("http://www.zhihu.com/people/wang-yi-zhu-39-58") 
-    user = User("http://www.zhihu.com/people/zen-kou/") 
+    #user = User("http://www.zhihu.com/people/zen-kou/") 
     #user = User("http://www.zhihu.com/people/mo-zhi/") 
     #user = User("http://www.zhihu.com/people/lishuhang/") 
     #user = User("http://www.zhihu.com/people/chengyuan") 
+    user = User("http://www.zhihu.com/people/qian-lu-55")
+    for url, name in user.get_followees():
+        print url, name
+    for url, name in user.get_followers():
+        print url, name
     #print user.get_user_name()
     #    print followee.get_user_name()
-    for follower in user.get_followers(4):
-        print follower.get_user_name()
+    #for follower in user.get_followers(4):
+    #    print follower.get_user_name()
     #print user.get_action_num()
     #print user.get_topic_num()
     #print user.get_follow_posts_num()
