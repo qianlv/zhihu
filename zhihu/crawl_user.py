@@ -16,38 +16,26 @@ logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"),
 
 import multiprocessing
 import requests
-from zhihuBase import ZHI_HU_URL, CrawlerDb
+from zhihuBase import ZHI_HU_URL, CrawlerDb, get_config,login
 import user
 
 class CrawlUser(CrawlerDb):
     def __init__(self, root_user = None):
         super(CrawlUser, self).__init__()
-        self.lock = multiprocessing.Lock()
-        self.create_table()
         self.user_info = []
         self.error_url = []
-
-    def create_table(self):
-        cursor = self.db.cursor()
-        cursor.execute("drop table if exists user")
-        cursor.execute("create table user "
-                       "(uid varchar(100) not null,agrees int not null, "
-                       "thanks int not null, asks int not null, "
-                       "answers int not null, posts int not null, "
-                       "collections int not null, logs int not null, "
-                       "followees int not null, followers int not null, " 
-                       "topics int not null, follow_posts int not null, "
-                       "primary key(uid) ) ENGINE = InnoDB" )
+        config = get_config("http")
+        self.http_url = "http://" + str(config('host')) + ':' + str(config('port'))
 
     def get_url(self):
-        r = requests.get("http://localhost:8080")
+        r = requests.get(self.http_url)
         if r.status_code == 200:
             return r.content
         elif r.status_code == 400:
             return None
 
     def post_url(self, url_list):
-        r = requests.post("http://localhost:8080", data={'url':json.dumps(url_list)})
+        r = requests.post(self.http_url, data={'url':json.dumps(url_list)})
 
     def insert_user(self):
         sql = "insert into `user` (`uid`, `agrees`, `thanks`, \
@@ -59,8 +47,7 @@ class CrawlUser(CrawlerDb):
                      %d, %d, %d, %d, %d, %d)," % y, self.user_info, sql)
         insert_sql = insert_sql[0:-1]
         self.user_info = []
-        with self.lock:
-            self.dbexecute(insert_sql)
+        self.dbexecute(insert_sql)
 
 
     def deal(self, uid, url = None):
@@ -82,7 +69,7 @@ class CrawlUser(CrawlerDb):
         self.user_info.append(info)
         url_list= [url.split('/')[-1] for url, _ in cur_user.get_followees()]
         self.post_url(url_list)
-        if len(self.user_info) >= 100:
+        if len(self.user_info) >= 3:
             self.insert_user()
         return (True, "")
 
@@ -107,8 +94,8 @@ class CrawlUser(CrawlerDb):
                     self.insert_user()
                 logging.info("Queue is Empty|%d|%d", os.getpid(), count)
                 count += 1
-                time.sleep(0.1)
-            if count == 100:
+                time.sleep(1)
+            if count == 10:
                 break
         logging.info("Process %d exit", os.getpid())
 
@@ -123,6 +110,7 @@ class CrawlUser(CrawlerDb):
         pool.join()
 
 if __name__ == '__main__':
+    login(config_file = sys.argv[1]) 
     my_user = CrawlUser()
     my_user.process()        
 

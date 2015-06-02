@@ -6,12 +6,14 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 import re
 import json
+import logging
+
 from bs4 import BeautifulSoup
 
-from zhihuBase import ZhiHuPage, remove_blank_lines, get_number_from_string
-from zhihuBase import ZHI_HU_URL
-import topic
-import answer
+from zhihu.base.network import ZhiHuPage, login
+from zhihu.base import remove_blank_lines, get_number_from_string
+from zhihu.setting import ZHI_HU_URL
+import topic, answer
 
 class Question(ZhiHuPage):
     def __init__(self, url):
@@ -120,23 +122,3 @@ class Question(ZhiHuPage):
         except Exception, e:
             logging.warn("Question get_topics error|%s|%s", self.url, str(e))
             return
-
-
-if __name__ == '__main__':
-    url = u'http://www.zhihu.com/question/22808635'
-    problem = Question(url)
-    print problem.get_title()
-    print problem.get_detail()
-    print problem.get_answers_num()
-    print problem.get_follower_num()
-    topics = problem.get_topics()
-    for my_topic in topics:
-        print my_topic.get_topic_name()
-    count = 0
-    for ans in problem.get_answers():
-        count +=1
-        print '------', count
-        print ans.get_auther().get_user_name()
-
-        
-

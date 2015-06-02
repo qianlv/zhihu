@@ -17,8 +17,9 @@ logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"),
 
 from bs4 import BeautifulSoup
 
-from zhihuBase import ZhiHuPage, get_number_from_string
-from zhihuBase import ZHI_HU_URL
+from zhihu.base.network import ZhiHuPage, login
+from zhihu.base import get_number_from_string
+from zhihu.setting import ZHI_HU_URL
 import answer, question, topic, collection
 
 class User(ZhiHuPage):
@@ -114,14 +115,14 @@ class User(ZhiHuPage):
 
         try:
             soup = self.soup.find("div", attrs={"class": "profile-navbar clearfix"})
+
+            self.action_num = []
+            for num in soup.find_all("a")[1:]:
+                self.action_num.append(int((num.span.string)))
+            return self.action_num
         except AttributeError, e:
             logging.warn(u"无法获取用户获得的各类活动数量|%s|%s", self.url, unicode(e))
             return [-1, -1, -1, -1, -1]
-
-        self.action_num = []
-        for num in soup.find_all("a")[1:]:
-            self.action_num.append(int((num.span.string)))
-        return self.action_num
     
     # 关注者人数
     def get_followers_num(self):
@@ -264,7 +265,7 @@ class User(ZhiHuPage):
             return
         else:
             post_url = self.url + "/topics"
-            num = self.get_topic_num()
+            num = self.get_topics_num()
             page_num = (num - 1) / 20 + 1
             topic_soup = self.get_soup(self.get_page(post_url))
             try:
@@ -449,12 +450,32 @@ class UserBrief(ZhiHuPage):
 
 
 if __name__ == '__main__':
+    login(sys.argv[1])
     #user = User("http://www.zhihu.com/people/wang-yi-zhu-39-58") 
     #user = User("http://www.zhihu.com/people/zen-kou/") 
     #user = User("http://www.zhihu.com/people/mo-zhi/") 
     #user = User("http://www.zhihu.com/people/lishuhang/") 
     #user = User("http://www.zhihu.com/people/chengyuan") 
     user = User("http://www.zhihu.com/people/qian-lu-55")
+    print user.get_action_num()
+    print user.get_topics_num()
+    print user.get_follow_posts_num()
+    count = 0
+    for m_topic in user.get_topics():
+        count += 1
+        print count
+        print m_topic.get_topic_name().encode("utf-8")
+    for ans in user.get_answers():
+        print ans.get_voter_num()
+        q = ans.get_question()
+        print q.get_title()
+        print '--------'
+
+    for q in user.get_asks():
+        print q.get_title()
+        print q.get_answers_num()
+        print q.get_follower_num() 
+
     for url, name in user.get_followees():
         print url, name
     for url, name in user.get_followers():
@@ -463,31 +484,12 @@ if __name__ == '__main__':
     #    print followee.get_user_name()
     #for follower in user.get_followers(4):
     #    print follower.get_user_name()
-    #print user.get_action_num()
-    #print user.get_topic_num()
-    #print user.get_follow_posts_num()
-    #count = 0
-    #for m_topic in user.get_topics():
-    #    count += 1
-    #    print count
-    #    print m_topic.get_topic_name().encode("utf-8")
-    #for ans in user.get_answers():
-    #    print ans.get_voter_num()
-    #    q = ans.get_question()
-    #    print q.get_title()
-    #    print '--------'
-
-    #for q in user.get_asks():
-    #    print q.get_title()
-    #    print q.get_answers_num()
-    #    print q.get_follower_num() 
-
     #for coll in user.get_collections():
     #    print coll.get_collection_name()
 
-    #ub = UserBrief("zen-kou")
-    #print ub.get_user_name()
-    #print ub.get_answers_num()
-    #print ub.get_posts_num()
-    #print ub.get_followers_num()
+    ub = UserBrief("zen-kou")
+    print ub.get_user_name()
+    print ub.get_answers_num()
+    print ub.get_posts_num()
+    print ub.get_followers_num()
 

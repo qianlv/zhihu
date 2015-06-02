@@ -6,12 +6,13 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 import re
 import os
-print os.path.dirname(__file__)
 import logging
 
 from bs4 import BeautifulSoup
 
-from zhihuBase import ZhiHuPage, ZHI_HU_URL, remove_blank_lines
+from zhihu.base.network import ZhiHuPage, login
+from zhihu.base import remove_blank_lines
+from zhihu.setting import ZHI_HU_URL
 import answer, question, user
 
 class Collection(ZhiHuPage):
@@ -137,6 +138,7 @@ class Collection(ZhiHuPage):
 
 
 if __name__ == '__main__':
+    login(sys.argv[1])
     my_coll = Collection("http://www.zhihu.com/collection/19644235")
     print my_coll.get_collection_name()
     print my_coll.get_collection_id()

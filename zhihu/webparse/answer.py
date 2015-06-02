@@ -4,14 +4,17 @@
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
+import os
 import re
 import json
 import datetime
 import logging
 
 from bs4 import BeautifulSoup
-from zhihuBase import ZhiHuPage, get_number_from_string, ZHI_HU_URL
 
+from zhihu.base.network import ZhiHuPage, login
+from zhihu.base import get_number_from_string
+from zhihu.setting import ZHI_HU_URL, CONFIG_DIR
 import question, user, topic
 
 class Answer(ZhiHuPage):
@@ -46,7 +49,7 @@ class Answer(ZhiHuPage):
                 auther_url = None
             else:
                 auther_tag = auther_tag.a
-                auther_url = u"http://www.zhihu.com" + auther_tag.get("href")
+                auther_url = ZHI_HU_URL + auther_tag.get("href")
         except Exception, e:
             logging.warn("Answer get_auther error|%s|%s",self.url, str(e))
             return None
@@ -124,7 +127,6 @@ class Answer(ZhiHuPage):
             return [(item.string, item.get("href")) for item in topic_all]
         except AttributeError, e:
             logging.warn("Can't get answer's topic name and url|%s|%s", self.url, str(e))
-            return
 
     # 话题名
     def get_topics(self):
@@ -144,19 +146,3 @@ class Answer(ZhiHuPage):
             logging.info("Answer get_content error|%s|%s",self.url, str(e))
             return None
         return text.encode("utf-8")
-
-if __name__ == '__main__':
-    answer = Answer("http://www.zhihu.com/question/28626263/answer/41992632")
-    #this_question = answer.get_question()
-    #auther = answer.get_auther() 
-    ##print "题目:", this_question.get_title(), this_question.get_detail()
-    ##print "作者:", auther.get_user_name()
-    #print "赞同数:", answer.get_voter_num()
-    #print "发布时间:", answer.get_answer_time().strftime("%Y-%m-%d")
-    ##print answer.get_content()
-    #for ur in answer.get_voters():
-    #    print ur[0], ur[1]
-    #for ur in answer.get_voters_detail():
-    #    print ur.get_user_name()
-    for item in answer.get_topics():
-        print item.get_topic_name()

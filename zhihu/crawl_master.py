@@ -19,7 +19,7 @@ from pybloom import BloomFilter
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-from zhihuBase import get_config
+from zhihuBase import get_config, create_topic_table, create_user_table
 from ConfigParser import  NoSectionError
 
 class CrawlMaster(BaseHTTPRequestHandler):
@@ -44,11 +44,11 @@ class CrawlMaster(BaseHTTPRequestHandler):
 
         self.rd = redis.Redis(host = host, port = port, db = db)
         self.url_que = init_que
+        self.rd.delete(self.url_que)
 
         try:
             for url in init_url:
                 if not url in self.bf:
-                    self.rd.delete(self.url_que)
                     self.rd.lpush(self.url_que, url)
                     self.bf.add(url)
         except redis.ConnectionError, e:
@@ -102,15 +102,26 @@ class MyHTTPServer(HTTPServer):
 if __name__ == '__main__':
     from zhihuBase import get_config
     config = get_config("http")
-    server = MyHTTPServer(
-            (config('host'), int(config('port'))), 
-            CrawlMaster,
-            'user', 
-            ['e-mo-de-nai-ba', 'gayscript', 
-             'xiaozhibo', 'giantchen', 
-             'jeffz', 'incredible-vczh'
-             'fenng', 'lawrencelry',
-             'jixin', 'winter-25'])
+    if sys.argv[1] == 'user':
+        server = MyHTTPServer(
+                (config('host'), int(config('port'))), 
+                CrawlMaster,
+                'user', 
+                ['e-mo-de-nai-ba', 'gayscript', 
+                 'xiaozhibo', 'giantchen', 
+                 'jeffz', 'incredible-vczh'
+                 'fenng', 'lawrencelry',
+                 'jixin', 'winter-25'])
+        create_user_table()
+    elif sys.argv[1] == 'topic':
+        server = MyHTTPServer(
+                (config('host'), int(config('port'))), 
+                CrawlMaster,
+                'topic', 
+                ['19776749', '19612637'])
+        create_topic_table()
+
+
 
     print 'Start Server, use <Ctrl-C> to stop'
     server.serve_forever()

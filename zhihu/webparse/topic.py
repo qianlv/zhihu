@@ -9,8 +9,9 @@ import logging
 
 from bs4 import BeautifulSoup
 
-from zhihuBase import ZhiHuPage, is_num_by_except
-from zhihuBase import ZHI_HU_URL
+from zhihu.base.network import ZhiHuPage, login
+from zhihu.base import is_num_by_except
+from zhihu.setting import ZHI_HU_URL
 import question
 
 
@@ -189,27 +190,3 @@ class TopicNode(ZhiHuPage):
                 return
             post_url = "?child=%s&parent=%s" % (data_token, data_parent)
             post_url = self.url + post_url
-
-if __name__ == '__main__':
-    my_topic = Topic("http://www.zhihu.com/topic/19570098")
-    print my_topic.get_topic_name()
-    print my_topic.get_topic_page_num()
-    print my_topic.get_topic_follower_num()
-    my_question = my_topic.get_questions().next()
-    print my_question.get_title()
-    print my_question.get_detail()
-    print my_question.get_answers_num()
-    print my_question.get_follower_num()
-    for topic in my_question.get_topics():
-        print topic.get_topic_name()
-    
-    my_topic_node = TopicNode("http://www.zhihu.com/topic/19612637/organize/entire")
-    print "节点名字:", my_topic_node.get_node_name()
-    print "节点URL:", my_topic_node.get_node_url()
-    print "话题ID:", my_topic_node.get_topic_id()
-    print "话题URL:", my_topic_node.get_topic_url()
-    print "话题问题页数:", my_topic_node.get_topic().get_topic_page_num()
-    print "子节点:"
-    childs = my_topic_node.get_children_nodes()
-    for child in childs:
-        print child.get_node_name()
