@@ -4,6 +4,7 @@
 import os
 import time
 import json
+import argparse
 import logging
 logging_format = "%(asctime)s|%(filename)s|%(funcName)s:%(lineno)d|%(levelname)s: %(message)s"
 logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"), 
@@ -11,28 +12,30 @@ logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"),
                     format = logging_format
                     )
 
-import multiprocessing
+import threading
 import requests
 
 from zhihu.base.database import CrawlerDb
 from zhihu.base import get_config
 from zhihu.setting import ZHI_HU_URL
-from zhihu.webparse.topic import TopicNode
+from zhihu.webparse.topic import TopicNode, Topic
 
-class TopicTree(CrawlerDb):
-    def __init__(self, root_id = None):
-        super(TopicTree, self).__init__()
-        self.error_url = []
+class CrawlTopic(CrawlerDb, threading.Thread):
+    def __init__(self):
+        CrawlerDb.__init__(self)
+        threading.Thread.__init__(self)
         self.edges = []
-        self.http_url = str(config('host')) + ':' + str(config('port'))
-        
+        self.count = 0
+        config = get_config("http")
+        self.http_url = "http://%s:%s/topic/" % (str(config('host')), str(config('port')))
+                        
     def add_topic(self, tids):
         if not tids:
             return
-        sql = "insert into `topic` (`tid`, `tname`) values "
-        for tid, tname in tids:
+        sql = "insert into `topic` (`tid`, `tname`, `tfollower`) values "
+        for tid, tname, tfollower in tids:
             tname = tname.replace("'", "''")
-            value_str = "(%d, '%s')," % (tid, tname)
+            value_str = "(%d, '%s', %d)," % (tid, tname, tfollower)
             sql += value_str
         sql = sql[0:-1]
         self.dbexecute(sql)
@@ -48,75 +51,93 @@ class TopicTree(CrawlerDb):
         self.dbexecute(sql)
 
     def get_url(self):
-        r = requests.get(self.http_url)
+        r = requests.get(self.http_url + str(0) + '/')
+        print r.url
         if r.status_code == 200:
             return r.content
         elif r.status_code == 400:
             return None
 
-    def post_url(self, url_list):
-        r = requests.post(self.http_url, data={'url':json.dumps(url_list)})
+    def post_url(self, url_list, que_type):
+        r = requests.post(self.http_url + str(que_type) + '/', data={'url':json.dumps(url_list)})
 
-    def deal(self, pid, url = None):
-        if url is None:
-            url = ZHI_HU_URL + "/topic/" + str(pid) + "/organize/entire"
-        node = TopicNode(url, topic_id = pid)
+    def deal(self, pid):
+        t_url = ZHI_HU_URL + "/topic/" + str(pid) 
+        n_url = t_url + "/organize/entire"
+        print t_url, n_url
+        cur_topic = Topic(t_url)
+        node = TopicNode(n_url)
+        
+        if not node or not cur_topic :
+            self.post_url([pid,], 1)
+            return
+
         tname = node.get_node_name()
-        if tname is None:
-            return (False, url)
-        self.add_topic([(pid, tname)])
+        tfollower = cur_topic.get_topic_follower_num()
+        if not tname or tfollower == -1:
+            self.post_url([pid,], 1)
+            return
+
+        self.add_topic([(pid, tname, tfollower)])
         for child in node.get_children_nodes():
-            if isinstance(child, basestring):
-                return (False, child)
             cid = child.get_topic_id()
-            self.edges.append((pid, cid))
-            self.post_url([cid])
-            if len(self.edges) >= 1000:
-                logging.info("pid = %d", os.getpid())
+            self.edges.append((pid, cid,))
+            self.post_url([cid], 0)
+            if len(self.edges) >= 3:
                 self.add_edge(self.edges)
                 self.edges= []
 
-        return (True, None)
-
-    def run(self, count):
+    def run(self):
         while True:
             pid = self.get_url()
+            print pid
             if not pid is None:
                 pid = int(pid)
-                count = 0
-                (ans, url) = self.deal(pid)
-                if not ans:
-                    self.error_url.append((pid, url))
-            elif self.error_url:
-                logging.info("deal some error url|%d", len(self.error_url));
-                for pid, url in self.error_url:
-                    (ans, url) = self.deal(pid, url = url)
-                    if not ans:
-                        logging.error("The url is problem|%d|%s", pid, url)
-                self.error_url = []
+                self.count = 0
+                self.deal(pid)
             else:
                 if self.edges:
                     logging.info("pid = %d", os.getpid())
                     self.add_edge(self.edges)
                     self.edges = []
-                logging.info("Queue is Empty|%d|%d", os.getpid(), count)
-                count += 1
-                time.sleep(0.1)
-            if count == 100:
+                logging.info("Queue is Empty|%s|%d", self.getName(), self.count)
+                self.count += 1
+                time.sleep(1)
+            if self.count >= 10:
                 break
 
-        logging.info("Process %d exit", os.getpid())
+        logging.info("Thread %s exit", self.getName())
 
-    def process(self):
-        num_process = multiprocessing.cpu_count()
-        #num_process = 1
-        pool = multiprocessing.Pool(processes=num_process,
-                    initializer=self.run,
-                    initargs=(0,),
-                    )
-        pool.close()
-        pool.join()
+
+def main():
+    threads = [CrawlTopic() for i in range(10)]
+    for my_thread in threads:
+        my_thread.start()
+    for my_thread in threads:
+        my_thread.join()
+    print 'Exiting Main Thread'
 
 if __name__ == '__main__':
-    my_tree = TopicTree() 
-    my_tree.process()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', required=True, 
+                        choices=['start', 'set'], 
+                        help='work mode')
+    parser.add_argument('-d', '--debug', type=int, choices=[0,1],
+                        help='open or close debug info')
+    parser.add_argument('--config', help='config file')
+    args = parser.parse_args()
+    if args.mode == 'start':
+        if not args.debug is None:
+            if args.debug == 0:
+                setting.set_debug(False)
+            else:
+                setting.set_debug(True)
+        if args.config:
+            setting.set_config_file(args.config)
+        main()
+    elif args.mode == 'set':
+        if args.debug == 0:
+            setting.set_debug(False)
+        elif args.debug == 1:
+            setting.set_debug(True)
+

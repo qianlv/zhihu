@@ -30,17 +30,18 @@ def create_user_table():
                    "followees int not null, followers int not null, " 
                    "topics int not null, follow_posts int not null, "
                    "primary key(uid) ) ENGINE = InnoDB" )
-
+    db.commit()
+    db.close()
 
 def create_topic_table():
     db = link_db()
-
     cursor = db.cursor()
     cursor.execute("drop table if exists topic")
     cursor.execute("drop table if exists topictree")
     cursor.execute("create table topic "
                    "(tid int not null, "
                    "tname varchar(60) not null, "
+                   "tfollower int(11) not null, "
                    "primary key(tid) "
                    ") ENGINE = InnoDB ")
     cursor.execute("create table topictree "
@@ -49,6 +50,37 @@ def create_topic_table():
                    "cid int not null, "
                    "primary key(edgeid) "
                    ") ENGINE = InnoDB")
+    db.commit()
+    db.close()
+
+def create_answer_table():
+    db = link_db()
+    cursor = db.cursor()
+    cursor.execute("drop table if exists answer")
+    cursor.execute("create table answer "
+                   "(aid int not null, "
+                   "uid varchar(60) not null, "
+                   "qid int not null, "
+                   "voter int not null, "
+                   "primary key(qid, aid)"
+                   ") ENGINE = InnoDB ")
+    db.commit()
+    db.close()
+
+def create_question_table():
+    db = link_db()
+    cursor = db.cursor()
+    cursor.execute("drop table if exists question")
+    cursor.execute("create table answer "
+                   "(qid int not null, "
+                   ""
+                   ") ENGINE = InnoDB ")
+    db.commit()
+    db.close()
+
+
+def create_question_table():
+    pass
 
 class CrawlerDb(object):
     def __init__(self):

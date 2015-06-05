@@ -20,6 +20,11 @@ class Topic(ZhiHuPage):
         url = self.deal_url(url)
         super(Topic, self).__init__(url)
 
+    def __nonzero__(self):
+        if self.url is None or self.soup is None:
+            return False
+        return True
+
     def deal_url(self, url):
         if url[-1] == '/':
             url = url[0:-1]
@@ -112,6 +117,13 @@ class Topic(ZhiHuPage):
 
         for child in cur_topic_node:
             yield Topic(child.get_topic_url())
+
+    def get_child_ids(self):
+        cur_topic_node = TopicNode(self.url + "/organize/entire",
+                                   name = self.get_topic_name(),
+                                   topic_id = self.get_topic_id())
+        for child in cur_topic_node:
+            yield child.get_topic_id()
                                    
 
 class TopicNode(ZhiHuPage):
@@ -119,6 +131,11 @@ class TopicNode(ZhiHuPage):
         self.node_name = name
         self.topic_id = topic_id
         super(TopicNode, self).__init__(url)
+
+    def __nonzero__(self):
+        if self.url is None or self.soup is None:
+            return False
+        return True
 
     def get_node_name(self):
         if self.node_name == None:
@@ -171,7 +188,7 @@ class TopicNode(ZhiHuPage):
                 response = self.get_post(post_url, data)
                 msg = response.json()["msg"]
                 topic_list = msg[1]
-            except (AttributeError, KeyError), e:
+            except (AttributeError, KeyError, ValueError), e:
                 logging.warn("TopicNode get_children_nodes post_url and self_url \
                                 |%s|%s|%s", post_url, self.url, str(e))
                 return
