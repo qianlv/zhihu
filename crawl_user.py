@@ -4,14 +4,15 @@ import os
 import time
 import json
 import argparse
+import threading
 import logging
-logging_format = "%(asctime)s|%(filename)s|%(funcName)s:%(lineno)d|%(levelname)s: %(message)s"
-logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"), 
-                    level = logging.DEBUG,
-                    format = logging_format
+
+from zhihu.setting import LOG_FILE, LOG_FORMAT, LOG_LEVEL
+logging.basicConfig(filename = LOG_FILE, 
+                    level = LOG_LEVEL,
+                    format = LOG_FORMAT
                     )
 
-import threading
 import requests
 import zhihu.setting as setting
 from zhihu.setting import ZHI_HU_URL, MAX_FAIL_COUNT, get_debug

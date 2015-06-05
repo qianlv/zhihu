@@ -40,10 +40,6 @@ LOG_FILE = os.path.join(CURRENT_DIR, 'log.txt')
 LOG_FORMAT = "%(asctime)s|%(filename)s|%(funcName)s:\
             %(lineno)d|%(levelname)s: %(message)s"
 LOG_LEVEL = logging.DEBUG
-logging.basicConfig(filename = LOG_FILE,
-                    level = LOG_LEVEL,
-                    format = LOG_FORMAT
-                    )
 
 # 页面访问随机时间间隔
 SLEEP_TIME = [0, 1.5]
