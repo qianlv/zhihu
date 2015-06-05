@@ -1,12 +1,9 @@
 #!/usr/bin/python
 #encoding=utf-8 
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
-import re
 import os
 import time
+import json
 import logging
 logging_format = "%(asctime)s|%(filename)s|%(funcName)s:%(lineno)d|%(levelname)s: %(message)s"
 logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"), 
@@ -15,73 +12,50 @@ logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"),
                     )
 
 import multiprocessing
+import requests
 
-from zhihuBase import get_number_from_string, ZHI_HU_URL, CrawlerDb
-from topic import TopicNode
+from zhihu.base.database import CrawlerDb
+from zhihu.base import get_config
+from zhihu.setting import ZHI_HU_URL
+from zhihu.webparse.topic import TopicNode
 
 class TopicTree(CrawlerDb):
     def __init__(self, root_id = None):
         super(TopicTree, self).__init__()
-        self.create_table()
-        self.que = multiprocessing.Queue()
         self.error_url = []
-        self.edges= []
-        self.lock = multiprocessing.Lock()
-        self.dictid = multiprocessing.Manager().dict()
-        if root_id == None:
-            self.que.put(19776749)
-            self.que.put(19612637)
-            self.is_and_set_id(19776749)
-            self.is_and_set_id(19612637)
-        else:
-            map(self.que.put, root_id)
-    
-    def create_table(self):
-        cursor = self.db.cursor()
-        cursor.execute("drop table if exists ntopic")
-        cursor.execute("drop table if exists ntopictree")
-        cursor.execute("create table ntopic "
-                        "(tid int not null, "
-                        "tname varchar(60) not null, "
-                        "primary key(tid) "
-                        ") ENGINE = InnoDB ")
-        cursor.execute("create table ntopictree "
-                       "(edgeid int not null auto_increment, "
-                       "pid int not null, "
-                       "cid int not null, "
-                       "primary key(edgeid) "
-                       ") ENGINE = InnoDB")
-
-    def is_and_set_id(self, tid):
-        with self.lock:
-            self.dictid.setdefault(tid, 0)
-            if self.dictid[tid]:
-                return True 
-            self.dictid[tid] = 1
-            return False 
-
+        self.edges = []
+        self.http_url = str(config('host')) + ':' + str(config('port'))
+        
     def add_topic(self, tids):
         if not tids:
             return
-        sql = "insert into `ntopic` (`tid`, `tname`) values "
+        sql = "insert into `topic` (`tid`, `tname`) values "
         for tid, tname in tids:
             tname = tname.replace("'", "''")
             value_str = "(%d, '%s')," % (tid, tname)
             sql += value_str
         sql = sql[0:-1]
-        with self.lock:
-            self.dbexecute(sql)
+        self.dbexecute(sql)
 
     def add_edge(self, edges):
         if not edges:
             return
-        sql = "insert into `ntopictree` (`pid`, `cid`) values "
+        sql = "insert into `topictree` (`pid`, `cid`) values "
         for (pid, cid) in edges:
             value_str = "(%d, %d)," % (pid, cid)
             sql += value_str
         sql = sql[0:-1]
-        with self.lock:
-            self.dbexecute(sql)
+        self.dbexecute(sql)
+
+    def get_url(self):
+        r = requests.get(self.http_url)
+        if r.status_code == 200:
+            return r.content
+        elif r.status_code == 400:
+            return None
+
+    def post_url(self, url_list):
+        r = requests.post(self.http_url, data={'url':json.dumps(url_list)})
 
     def deal(self, pid, url = None):
         if url is None:
@@ -96,9 +70,7 @@ class TopicTree(CrawlerDb):
                 return (False, child)
             cid = child.get_topic_id()
             self.edges.append((pid, cid))
-            if not self.is_and_set_id(cid):
-                self.que.put(cid)
-
+            self.post_url([cid])
             if len(self.edges) >= 1000:
                 logging.info("pid = %d", os.getpid())
                 self.add_edge(self.edges)
@@ -108,9 +80,10 @@ class TopicTree(CrawlerDb):
 
     def run(self, count):
         while True:
-            if not self.que.empty():
+            pid = self.get_url()
+            if not pid is None:
+                pid = int(pid)
                 count = 0
-                pid = self.que.get()
                 (ans, url) = self.deal(pid)
                 if not ans:
                     self.error_url.append((pid, url))
@@ -145,5 +118,5 @@ class TopicTree(CrawlerDb):
         pool.join()
 
 if __name__ == '__main__':
-    my_tree = TopicTree()
+    my_tree = TopicTree() 
     my_tree.process()

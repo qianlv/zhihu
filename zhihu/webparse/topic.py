@@ -48,7 +48,7 @@ class Topic(ZhiHuPage):
             self.topic_name = soup.h1.get_text()
         except (AttributeError, ValueError), e:
             logging.warn("Topic get_topic_name error|%s|%s", self.url, str(e))
-            return None 
+            return ''
 
         return self.topic_name.encode("utf-8")
 
@@ -68,7 +68,7 @@ class Topic(ZhiHuPage):
         except (AttributeError, ValueError), e:
             logging.warn("Topic get_topic_page_num error|%s|%s", 
                             self.url, str(e))
-            return None 
+            self.topic_page_num = -1
         return self.topic_page_num
 
     def get_topic_follower_num(self):
@@ -85,7 +85,7 @@ class Topic(ZhiHuPage):
                 self.topic_follower_num = 0
         except (AttributeError, ValueError), e:
             logging.warn("Topic get_topic_follower_num error|%s|%s", self.url, str(e))
-            return None 
+            self.topic_follower_num = -1
 
         return self.topic_follower_num 
 
@@ -129,7 +129,7 @@ class TopicNode(ZhiHuPage):
                 logging.warn("TopicNode get_node_name error|%s|%s", 
                             self.url if self.url else '', str(e))
 
-                return None
+                return ''
 
         return self.node_name.encode("utf-8")
     
@@ -159,7 +159,6 @@ class TopicNode(ZhiHuPage):
             logging.warn("TopicNode get_children_nodes can't find xsrf value \
                           |%s|%s", self.url if self.url else '', str(e))
             # 返回出错的url用于重新处理
-            yield self.url
             return
 
         data = { "_xsrf": xsrf }
@@ -175,8 +174,6 @@ class TopicNode(ZhiHuPage):
             except (AttributeError, KeyError), e:
                 logging.warn("TopicNode get_children_nodes post_url and self_url \
                                 |%s|%s|%s", post_url, self.url, str(e))
-                # 返回出错的url用于重新处理
-                yield post_url
                 return
 
             for item in topic_list:

@@ -1,23 +1,12 @@
 #!/usr/bin/python
 #encoding=utf-8
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
-import re
 import json
-import os
 import logging
-logging_format = "%(asctime)s|%(filename)s|%(funcName)s:%(lineno)d|%(levelname)s: %(message)s"
-logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"), 
-                    level = logging.DEBUG,
-                    format = logging_format
-                    )
-
 
 from bs4 import BeautifulSoup
 
-from zhihu.base.network import ZhiHuPage, login
+from zhihu.base.network import ZhiHuPage
 from zhihu.base import get_number_from_string
 from zhihu.setting import ZHI_HU_URL
 import answer, question, topic, collection
@@ -63,9 +52,9 @@ class User(ZhiHuPage):
             try:
                 soup = self.soup.find("span", attrs={"class": "zm-profile-header-user-agree"}).strong
                 self.agrees_num = int(soup.string)
-            except AttributeError, e:
+            except (ValueError, AttributeError), e:
                 logging.warn(u"无法获取用户获得的赞同数|%s|%s", self.url, unicode(e))
-                return None
+                self.agrees_num = -1
             
         return self.agrees_num
 
@@ -81,9 +70,9 @@ class User(ZhiHuPage):
                 soup = self.soup.find("span", 
                         attrs={"class": "zm-profile-header-user-thanks"}).strong
                 self.thanks_num = int(soup.string)
-            except AttributeError, e:
+            except (ValueError,AttributeError), e:
                 logging.warn(u"无法获取用户获得的感谢数|%s|%s", self.url, unicode(e))
-                return None
+                self.thanks_num = -1
         return self.thanks_num
 
     # 提问数
@@ -120,9 +109,10 @@ class User(ZhiHuPage):
             for num in soup.find_all("a")[1:]:
                 self.action_num.append(int((num.span.string)))
             return self.action_num
-        except AttributeError, e:
+        except Exception, e:
             logging.warn(u"无法获取用户获得的各类活动数量|%s|%s", self.url, unicode(e))
-            return [-1, -1, -1, -1, -1]
+            self.action_num = [-1, -1, -1, -1, -1]
+        return self.action_num 
     
     # 关注者人数
     def get_followers_num(self):
@@ -137,7 +127,7 @@ class User(ZhiHuPage):
                 self.follower_num = int(soup.find_all("strong")[1].string)
             except (AttributeError, KeyError), e:
                 logging.warn(u"无法获取用户关注者人数|%s|%s", self.url, unicode(e))
-                return 0
+                self.follower_num = -1
 
         return self.follower_num
 
@@ -155,7 +145,7 @@ class User(ZhiHuPage):
                 self.followees_num = int(soup.find_all("strong")[0].string)
             except (AttributeError, KeyError), e:
                 logging.warn(u"无法获取用户关注多少人|%s|%s", self.url, unicode(e))
-                return 0
+                self.followees_num = -1
 
         return self.followees_num
 
@@ -183,7 +173,7 @@ class User(ZhiHuPage):
         if self.url is None:
             yield
         else:
-            if num == 0:
+            if num <= 0:
                 return
             page_num = (num - 1) / 20 + 1
             follow_soup = self.get_soup(self.get_page(url))
@@ -200,11 +190,9 @@ class User(ZhiHuPage):
                             all_a_tag[0].get("title") == u'[已重置]':
                                 continue
                     url = all_a_tag[0].get("href")
-                    #yield User(url, name = all_a_tag[0].get("title"))
                     yield (url, all_a_tag[0].get("title"))
             except (ValueError, AttributeError, KeyError), e:
                 logging.warn(u"无法获取用户关注者和被关注者信息|%s|%s|%s", url, self.url, str(e))
-                #yield (url, 0)
                 return
 
             if page_num <= 1:
@@ -235,11 +223,9 @@ class User(ZhiHuPage):
                                 all_a_tag[0].get("title") == u'[已重置]':
                                     continue
                         url = all_a_tag[0].get("href")
-                        #yield User(url, all_a_tag[0].get("title"))
                         yield (url, all_a_tag[0].get("title"))
             except (AttributeError, ValueError, KeyError), e:
                 logging.warn(u"无法获取用户关注者和被关注者信息|%s|%s|%s", post_url, self.url, str(e))
-                #yield (post_url, offset)
                 return
 
     # 关注话题数
@@ -255,8 +241,8 @@ class User(ZhiHuPage):
             self.topics_num = get_number_from_string( \
                     self.soup.find("a", href=url).strong.string)[0]
         except (AttributeError, ValueError, KeyError), e:
-            #logging.warn(u"无法获取用户关注话题数|%s|%s", self.url, unicode(e))
-            self.topics_num = 0 
+            logging.warn(u"无法获取用户关注话题数|%s|%s", self.url, str(e))
+            self.topics_num = 0
         return self.topics_num
 
     # 关注的话题
@@ -266,6 +252,8 @@ class User(ZhiHuPage):
         else:
             post_url = self.url + "/topics"
             num = self.get_topics_num()
+            if num <= 0:
+                return 
             page_num = (num - 1) / 20 + 1
             topic_soup = self.get_soup(self.get_page(post_url))
             try:
@@ -278,7 +266,6 @@ class User(ZhiHuPage):
                     yield topic.Topic(url)
             except (AttributeError, ValueError), e:
                 logging.warn(u"无法获取用户关注话题信息|%s|%d|%s|%s", post_url, 0, self.url, unicode(e))
-                yield (post_url, 0)
                 return 
 
             if page_num <= 1:
@@ -303,7 +290,6 @@ class User(ZhiHuPage):
                         yield topic.Topic(url)
             except (AttributeError, ValueError, KeyError), e:
                 logging.warn(u"无法获取用户关注话题|%s|%d|%s|%s", post_url, offset, self.url, str(e))
-                #yield (post_url, offset)
                 return 
 
 
@@ -342,7 +328,6 @@ class User(ZhiHuPage):
                     yield answer.Answer(url)
             except (AttributeError, ValueError), e:
                 logging.warn(u"无法获取用户回答信息|%s|%s|%s", get_url, self.url, unicode(e))
-                yield get_url
                 return 
 
     # 提的问题
@@ -362,7 +347,6 @@ class User(ZhiHuPage):
                     yield question.Question(url)
             except (AttributeError, ValueError), e:
                 logging.warn(u"无法获取用户所提问题信息|%s|%s|%s", get_url, self.url, unicode(e))
-                yield get_url
                 return 
 
     # 收藏夹
@@ -381,7 +365,6 @@ class User(ZhiHuPage):
                     yield collection.Collection(url)
             except (AttributeError, ValueError), e:
                 logging.warn(u"无法获取用户收藏夹信息|%s|%s|%s", get_url, self.url, unicode(e))
-                yield get_url
                 return 
 
 class UserBrief(ZhiHuPage):
@@ -408,31 +391,6 @@ class UserBrief(ZhiHuPage):
         return self.user_name
 
 
-    def get_answers_num(self):
-        if hasattr(self, "answers_num"):
-            return self.answers_num
-
-        try:
-            self.answers_num =self.soup.find_all( \
-                    "span", class_ = "value")[0].string 
-            self.answers_num = self.deal_num(self.answers_num)
-        except (KeyError, AttributeError), e:
-            logging.warn("Can't get user's answer num|%s|%s", user_id, str(e))
-            return None
-        return self.answers_num
-
-    def get_posts_num(self):
-        if hasattr(self, "posts_num"):
-            return self.posts_num
-
-        try:
-            self.posts_num =self.soup.find_all( \
-                    "span", class_ = "value")[1].string 
-            self.posts_num = self.deal_num(self.posts_num)
-        except (KeyError, AttributeError), e:
-            logging.warn("Can't get user's post num|%s|%s", user_id, str(e))
-            return None
-        return self.posts_num
 
     def get_followers_num(self):
         if hasattr(self, "followers_num"):
@@ -444,13 +402,12 @@ class UserBrief(ZhiHuPage):
             self.followers_num = self.deal_num(self.followers_num)
         except (KeyError, AttributeError), e:
             logging.warn("Can't get user's followers num|%s|%s", user_id, str(e))
-            return None
+            self.followers_num = -1
         return self.followers_num
 
 
 
 if __name__ == '__main__':
-    login(sys.argv[1])
     #user = User("http://www.zhihu.com/people/wang-yi-zhu-39-58") 
     #user = User("http://www.zhihu.com/people/zen-kou/") 
     #user = User("http://www.zhihu.com/people/mo-zhi/") 

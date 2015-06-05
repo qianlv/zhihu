@@ -2,27 +2,23 @@
 import sys
 import os
 import re
-print os.path.abspath('../')
-sys.path.append(os.path.abspath('../'))
+import logging
+
 import requests
 from bs4 import BeautifulSoup
-from zhihuBase import ZhiHuPage, login, get_number_from_string, link_db
 
-import logging
-logging_format = "%(asctime)s|%(filename)s|%(funcName)s:%(lineno)d|%(levelname)s: %(message)s"
-logging.basicConfig(filename = os.path.join(os.getcwd(), "../log.txt"), 
-                    level = logging.INFO,
-                    format = logging_format
-                    )
-
+from zhihu.base.network import ZhiHuPage
+from zhihu.base.database import link_db
+from zhihu.base import get_number_from_string
+from zhihu.base.ippools import set_cur_proxies, get_proxies, delete_ip
 
 def check_ping(ip):
     import subprocess 
     com = 'ping -c 1 %s -W 1' %ip
-    print com
     ret = subprocess.call(com, shell = True, 
                     stdout=open('/dev/null', 'w'),
                     stderr=subprocess.STDOUT)
+    print com
     if ret != 0:
         return False
     return True
@@ -33,9 +29,11 @@ def crawl_cn_ip():
     try:
         r = requests.get(url, timeout=5)
     except Exception, e:
-        print str(e)
+        #print str(e)
         return []
     soup = BeautifulSoup(r.content)
+    if not soup:
+        return []
     table = soup.find('table', id='tablekit-table-1')
     trs = soup.find_all('tr')
     for tr in trs[2:]:
@@ -59,7 +57,7 @@ def crawl_kuai_ip():
             try:
                 r = requests.get(url + str(i), timeout=5)
             except Exception, e:
-                print str(e)
+                #print str(e)
                 continue
             soup = BeautifulSoup(r.content)
             table = soup.find('table', class_ = "table table-bordered table-striped")
@@ -81,7 +79,7 @@ def crawl_proxy_ip():
         try:
             r = requests.get(url + "list_" + str(i) + ".html", timeout = 5)
         except Exception, e:
-            print str(e)
+            #print str(e)
             continue
         print r.url
         soup = BeautifulSoup(r.content)
@@ -132,7 +130,7 @@ def crawl_ip_daily_ip():
         try:
             r = requests.get(url, timeout=5)
         except Exception, e:
-            print str(e)
+            #print str(e)
             return []
         ma = re.compile(ur'(\d+\.\d+\.\d+\.\d+):(\d+)') 
         res = ma.findall(r.content)
@@ -144,7 +142,7 @@ def crawl_ip_daily_ip():
         try:
             r = requests.get(url, timeout=5)
         except Exception, e:
-            print str(e)
+            #print str(e)
             continue
         soup = BeautifulSoup(r.content)
         ul = soup.find('div', class_="lmy-right-xw").ul
@@ -187,7 +185,9 @@ class CheckIp(ZhiHuPage):
         proxies = {'http': os.path.pathsep.join([ip[0], ip[1]]) }
         from random import choice
         url = self.urls[choice(range(0, len(self.urls)))]
-        res = self.get_page(url, proxies_flag = False, proxies = proxies)
+        set_cur_proxies(proxies) 
+        print proxies
+        res = self.get_page(url)
         if res is None: 
             return False
         elif self.check_content(res.content):
@@ -204,25 +204,32 @@ class CheckIp(ZhiHuPage):
         cursor.execute(insert_sql)
         self.db.commit()
 
+    def __del__(self):
+        self.db.close()
+
     def __call__(self, ips):
         ips = set(ips)
         map(self.save_db, ips)
 
-#print check_ping('123.163.92.238')
-
-my_check = CheckIp()
-#ips = crawl_kuai_ip()
-#my_check(ips)
-#ips = crawl_haodailiip_ip()
-#print len(ips)
-#my_check(ips)
-#ips = crawl_proxy_ip()
-#print len(ips)
-#my_check(ips)
-#ips = crawl_cn_ip()
-#print len(ips)
-#my_check(ips)
-ips = crawl_ip_daily_ip()
-my_check(ips)
-
-
+def main():
+    #proxies = get_proxies(100)
+    my_check = CheckIp()
+    #for ip_address in proxies:
+    #    ip,port = ip_address['http'].split(':')
+    #    print ip, port
+    #    if not my_check.check((ip, port)):
+    #        delete_ip(ip_address['http'])
+    ips = crawl_cn_ip()
+    print ips
+    my_check(ips)
+    ips = crawl_kuai_ip()
+    my_check(ips)
+    ips = crawl_proxy_ip()
+    my_check(ips)
+    ips = crawl_haodailiip_ip()
+    my_check(ips)
+    ips = crawl_ip_daily_ip()
+    my_check(ips)
+    return 0
+if __name__ == '__main__':
+    main()

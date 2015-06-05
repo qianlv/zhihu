@@ -52,7 +52,7 @@ class Answer(ZhiHuPage):
                 auther_url = ZHI_HU_URL + auther_tag.get("href")
         except Exception, e:
             logging.warn("Answer get_auther error|%s|%s",self.url, str(e))
-            return None
+            auther_url = None
         return user.User(auther_url)
 
     def get_voter_page(self, get_url = None):
@@ -86,7 +86,12 @@ class Answer(ZhiHuPage):
             if get_url == "":
                 break
             voter_soup = self.get_voter_page(get_url)
-            get_url = ZHI_HU_URL + voter_soup.json()['paging']['next']
+            try:
+                get_url = ZHI_HU_URL + voter_soup.json()['paging']['next']
+            except (AttributeError, ValueError), e:
+                logging.warn("Can't get voter url|%s|%s", self.url, str(e))
+                return
+
             for item in voter_soup.json()['payload']:
                 try:
                     soup = BeautifulSoup(item).find('a')
@@ -127,6 +132,7 @@ class Answer(ZhiHuPage):
             return [(item.string, item.get("href")) for item in topic_all]
         except AttributeError, e:
             logging.warn("Can't get answer's topic name and url|%s|%s", self.url, str(e))
+        return []
 
     # 话题名
     def get_topics(self):
@@ -136,7 +142,6 @@ class Answer(ZhiHuPage):
                 yield topic.Topic(topic_url)
         except AttributeError, e:
             logging.warn("Question get_topics error|%s|%s", self.url, str(e))
-            return
 
     def get_content(self):
         try:

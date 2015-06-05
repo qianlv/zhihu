@@ -1,13 +1,14 @@
 #encoding=utf-8
 
 import logging
-import get_config
+from zhihu.base import get_config
+from ConfigParser import NoSectionError
 
 import MySQLdb
 
 def link_db():
     try:
-        config = get_config("mysql", config_file = CONFIG_FILE)
+        config = get_config("mysql")
         dbname   = config("dbname")
         username = config("username")
         passwd   = config("passwd")
@@ -20,8 +21,8 @@ def link_db():
 def create_user_table():
     db = link_db()
     cursor = db.cursor()
-    cursor.execute("drop table if exists user")
-    cursor.execute("create table user "
+    cursor.execute("drop table if exists user_test")
+    cursor.execute("create table user_test "
                    "(uid varchar(100) not null,agrees int not null, "
                    "thanks int not null, asks int not null, "
                    "answers int not null, posts int not null, "

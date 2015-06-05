@@ -1,11 +1,11 @@
 #!/usr/bin/python
 #encoding=utf-8
 
-import sys
 import json
 import os
-import re
 import logging
+import time
+from random import randrange
 
 import requests
 from bs4 import BeautifulSoup
@@ -13,8 +13,9 @@ from bs4 import BeautifulSoup
 from zhihu.setting import ZHI_HU_URL
 from zhihu.setting import COOKIES_DIR, COOKIES_SAVE
 from zhihu.setting import COOKIES_PREFIX_FILENAME
-from zhihu.base import get_config, get_random_proxies, save_page
-
+from zhihu.setting import SLEEP_TIME, get_debug
+from zhihu.base import get_config, save_page
+from zhihu.base.ippools import change_cur_proxies, get_cur_proxies, fail_cur_proxies
 
 session = None
 
@@ -26,7 +27,6 @@ def save_captcha():
     global session
     try:
         r = session.get(url) 
-        print r.status_code
     except (requests.Timeout, requests.ConnectionError), e:
         logging.error("%s|%s",str(e), url)
     with open('code.gif', 'wb') as f:
@@ -69,7 +69,8 @@ def login(proxies_flag = True):
         captcha = raw_input('Please check code.gif to input captcha:')
         login_data['captcha'] = captcha
         response = session.post('http://www.zhihu.com/login', data = login_data, 
-                headers = headers, proxies = get_random_proxies(), verify = False, timeout = 5)
+                headers = headers, proxies = get_random_proxies(proxies), 
+                verify = False, timeout = 5)
 
         save_page('login.html', response.content)
         if response.status_code != 200:
@@ -132,18 +133,23 @@ class ZhiHuPage(object):
         except AttributeError, e:
             logging.warn("This is url is error %s|%s", self.url, str(e))
 
-    def get_page(self, url, params=None, proxies_flag = True, proxies = {}):
+    def get_page(self, url, params=None):
         global session
         self.__get_session()
+        cur_proxies = get_cur_proxies()
+        if get_debug():
+            print cur_proxies
+
         try:
-            if proxies_flag:
-                proxies = get_random_proxies()
-            #print proxies
+            time.sleep(randrange(*SLEEP_TIME, _int=float))
             response = session.get(url, params=params, 
-                    proxies = proxies, verify = False, timeout = 5)
+                                   proxies = cur_proxies,
+                                   verify = False, timeout = 1)
             if response.status_code != 200:
                 logging.warn("Can't get right webpage|%s|%d",\
                             response.url, response.status_code)
+                fail_cur_proxies()
+                change_cur_proxies()
                 return None
             return response
         except requests.ConnectionError, e:
@@ -152,12 +158,16 @@ class ZhiHuPage(object):
             logging.error("Time out|%s|%s", url, str(e))
         except Exception, e:
             logging.error("Session Get Fail|%s|%s", url, str(e))
-        print 'get some fail happen'
+        fail_cur_proxies()
+        change_cur_proxies()
         return None
 
-    def get_post(self, url, data, proxies_flag = True, proxies = {}):
+    def get_post(self, url, data):
         global session
         self.__get_session()
+        cur_proxies = get_cur_proxies()
+        if get_debug():
+            print cur_proxies
         try:
             user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
             headers = { 
@@ -165,14 +175,15 @@ class ZhiHuPage(object):
                 'Host': 'www.zhihu.com',
                 'Referer': url,
             }
-            if proxies_flag:
-                proxies = get_random_proxies()
-            #print proxies
+            time.sleep(randrange(*SLEEP_TIME, _int=float))
             response = session.post(url, data=data, headers=headers, 
-                    proxies = proxies, verify = False, timeout = 5)
+                                    proxies = cur_proxies, 
+                                    verify = False, timeout = 1)
             if response.status_code != 200:
                 logging.warn("Can't get right webpage|%s|%d", \
                             response.url, response.status_code)
+                fail_cur_proxies()
+                change_cur_proxies()
                 return None
             return response 
         except requests.ConnectionError, e:
@@ -181,6 +192,7 @@ class ZhiHuPage(object):
             logging.error("Time out|%s|%s", url, str(e))
         except Exception, e:
             logging.error("Session Post Fail|%s|%s", url, str(e))
-        print 'some fail happen'
+        fail_cur_proxies()
+        change_cur_proxies()
         return None
     

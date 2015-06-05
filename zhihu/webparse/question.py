@@ -1,16 +1,12 @@
 #!/usr/bin/python
 #encoding=utf-8
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
-import re
 import json
 import logging
 
 from bs4 import BeautifulSoup
 
-from zhihu.base.network import ZhiHuPage, login
+from zhihu.base.network import ZhiHuPage
 from zhihu.base import remove_blank_lines, get_number_from_string
 from zhihu.setting import ZHI_HU_URL
 import topic, answer
@@ -26,9 +22,9 @@ class Question(ZhiHuPage):
         try:
             title_div = self.soup.find("div", id="zh-question-title")
             title = title_div.get_text()
-        except Exception, e:
+        except AttributeError, e:
             logging.warn("Question get_title error|%s|%s", self.url, str(e))
-            return None
+            return ''
         title = remove_blank_lines(title)
         self.title = title
         return self.title.encode("utf-8")
@@ -37,9 +33,9 @@ class Question(ZhiHuPage):
         try:
             detail_div = self.soup.find("div", id="zh-question-detail").div
             detail = detail_div.get_text()
-        except Exception, e:
+        except AttributeError, e:
             logging.warn("Question get_detail error|%s|%s", self.url, str(e))
-            return None
+            return ''
 
         detail = remove_blank_lines(detail)
         return detail.encode("utf-8")
@@ -56,9 +52,9 @@ class Question(ZhiHuPage):
                 self.answers_num = len(soup)
             else:
                 self.answers_num = get_number_from_string(unicode(soup.string))[0]
-        except Exception, e:
+        except (AttributeError, KeyError, ValueError), e:
             logging.warn("Question get_answers_num error|%s|%s", self.url, str(e))
-            return None
+            self.answers_num = -1
 
         return self.answers_num
 
@@ -69,7 +65,7 @@ class Question(ZhiHuPage):
             for link in answer_link:
                 url = ZHI_HU_URL + link.get("href")
                 yield answer.Answer(url)
-        except Exception, e:
+        except AttributeError, e:
             logging.warn("Question get_answers error|%s|%s", self.url, str(e))
             return
 
@@ -95,7 +91,7 @@ class Question(ZhiHuPage):
                                 class_="answer-date-link")
                     url = ZHI_HU_URL + link.get("href")
                     yield answer.Answer(url)
-        except Exception, e:
+        except (AttributeError, ValueError, KeyError), e:
             logging.warn("Question get_answers error|%s|%s", self.url, str(e))
             return
         
@@ -107,9 +103,9 @@ class Question(ZhiHuPage):
             try:
                 soup = self.soup.find("div", id="zh-question-side-header-wrap")
                 self.follower_num = get_number_from_string(soup.get_text())[0]
-            except Exception, e:
+            except (AttributeError, KeyError), e:
                 logging.warn("Question get_follower_num error|%s|%s", self.url, str(e))
-                return None
+                self.follower_num = -1
         return self.follower_num
 
     def get_topics(self):
@@ -119,6 +115,6 @@ class Question(ZhiHuPage):
             for topic_tag in topic_all:
                 url = ZHI_HU_URL + topic_tag.get('href')
                 yield topic.Topic(url)
-        except Exception, e:
+        except AttributeError, e:
             logging.warn("Question get_topics error|%s|%s", self.url, str(e))
             return
