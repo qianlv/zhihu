@@ -1,18 +1,13 @@
 #!/usr/bin/python
 #encoding=utf-8
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
-import os
-import re
 import json
 import datetime
 import logging
 
 from bs4 import BeautifulSoup
 
-from zhihu.base.network import ZhiHuPage, login
+from zhihu.base.network import ZhiHuPage
 from zhihu.base import get_number_from_string
 from zhihu.setting import ZHI_HU_URL, CONFIG_DIR
 import question, user, topic
