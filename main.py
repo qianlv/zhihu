@@ -70,12 +70,64 @@ def test_question():
         print '------', count
         print ans.get_auther().get_user_name()
 
+def test_user():
+    my_user = user.User("http://www.zhihu.com/people/qian-lu-55")
+    print '用户名:', my_user.get_user_name()
+    print '用户Id:', my_user.get_user_id()
+    print '赞同数:', my_user.get_upvote_num()
+    print '感谢数:', my_user.get_thanks_num()
+
+    count = 0
+    print '关注了:', my_user.get_followees_num()
+    for u in my_user.get_followees():
+        print u
+        count += 1
+        if count > 2: break
+    print '关注者数:', my_user.get_followers_num() 
+    count = 0
+    for u in my_user.get_followers():
+        print u
+        count += 1
+        if count > 2: break
+
+    print '关注话题数:', my_user.get_topics_num()
+    count = 0
+    for t in my_user.get_topics():
+        print t
+        count += 1
+        if count > 2: break
+    print '关注专栏数:', my_user.get_follow_posts_num()
+
+    print '提问数，回答数, 专利文章数, 收藏夹数, 公共编辑数:', my_user.get_action_num()
+    print '回答:'
+    count = 0
+    for ans in my_user.get_answers():
+        print ans
+        count += 1
+        if count > 2: break
+    print '提问:'
+    count = 0
+    for q in my_user.get_asks():
+        print q
+        count += 1
+        if count > 2: break
+
+    ub = user.UserBrief("zen-kou")
+    print ub.get_user_name()
+    #print ub.get_answers_num()
+    #print ub.get_posts_num()
+    print ub.get_followers_num()
+
+
 if __name__ == '__main__':
     print setting.CONFIG_DIR
-    print '--------Test Answer--------'
     set_cur_proxies({})
+    print '--------Test User & UserBrief -----'
+    test_user()
+    print '--------Test Answer--------'
     test_answer()
     print '------- Test Topic -------'
     test_topic()
     print '------ Test Question ------'
     test_question()
+
