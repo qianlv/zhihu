@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#encoding=utf-8
+# encoding=utf-8
 
 import json
 import os
@@ -15,27 +15,33 @@ from zhihu.setting import COOKIES_DIR, COOKIES_SAVE
 from zhihu.setting import COOKIES_PREFIX_FILENAME
 from zhihu.setting import SLEEP_TIME, get_debug
 from zhihu.base import get_config, save_page
-from zhihu.base.ippools import change_cur_proxies, get_cur_proxies, fail_cur_proxies
+from zhihu.base.ippools import change_cur_proxies, get_cur_proxies, \
+    fail_cur_proxies
 
 session = None
 
+
 def save_captcha():
-    ''' get the picture of captcha on current directory
+    ''' get the picture of captcha and save it on current directory
     '''
     from time import time
     url = ZHI_HU_URL + '/captcha.gif?r=' + str(int(time() * 1000))
     global session
     try:
-        r = session.get(url) 
+        r = session.get(url)
     except (requests.Timeout, requests.ConnectionError), e:
-        logging.error("%s|%s",str(e), url)
+        logging.error("%s|%s", str(e), url)
     with open('code.gif', 'wb') as f:
         f.write(r.content)
 
-def login(proxies_flag = True):
+
+def login(proxies_flag=True):
+    ''' login in zhihu.com by account or cookie
+    '''
     global session
     if session:
         return
+
     try:
         from ConfigParser import NoSectionError
         config = get_config("acount")
@@ -45,10 +51,10 @@ def login(proxies_flag = True):
         logging.error('You must be set right config.ini|%s', str(e))
         exit("You must be set right config.ini")
     login_data = {'email': email, 'password': passwd}
-     
+
     user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
-    headers = { 
-        'User-agent' : user_agent,
+    headers = {
+        'User-agent': user_agent,
         'Host': 'www.zhihu.com',
         'Referer': 'http://www.zhihu.com',
         'X-Requested-With': 'XMLHttpRequest'
@@ -64,8 +70,11 @@ def login(proxies_flag = True):
     else:
         save_captcha()
         import subprocess
-        p = subprocess.Popen('display code.gif', shell=True, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT)
+        subprocess.Popen('display code.gif',
+                         shell=True,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+
         captcha = raw_input('Please check code.gif to input captcha:')
         login_data['captcha'] = captcha
         response = session.post('http://www.zhihu.com/login', data = login_data, 
@@ -73,6 +82,7 @@ def login(proxies_flag = True):
                 verify = False, timeout = 5)
 
         save_page('login.html', response.content)
+
         if response.status_code != 200:
             exit("Please check network |%d", response.status_code)
         if response.json()['r'] == 1:
@@ -81,6 +91,7 @@ def login(proxies_flag = True):
                 logging.error("Login Failed, reason is: %s", \
                     response.json()['msg'][m].encode("utf-8"))
                 exit(response.json()['msg'][m].encode("utf-8"))
+
         if not COOKIES_SAVE:
             return
         with open(cookie_file, 'w') as f:

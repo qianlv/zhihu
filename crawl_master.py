@@ -1,16 +1,14 @@
 #!/usr/bin/python
-#encoding=utf-8 
+# encoding=utf-8
 
-import sys
-import re
 import os
-import time
 import argparse
 import logging
-logging_format = "%(asctime)s|%(filename)s|%(funcName)s:%(lineno)d|%(levelname)s: %(message)s"
-logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"), 
-                    level = logging.DEBUG,
-                    format = logging_format
+logging_format = "%(asctime)s|%(filename)s|%(funcName)s:\
+                  %(lineno)d|%(levelname)s: %(message)s"
+logging.basicConfig(filename = os.path.join(os.getcwd(), "log.txt"),
+                    level    = logging.DEBUG,
+                    format   = logging_format
                     )
 
 import redis
@@ -21,18 +19,22 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from zhihu.base.database import create_topic_table, create_user_table
 from zhihu.base import get_config
 import zhihu.setting as setting
-from ConfigParser import  NoSectionError
+from ConfigParser import NoSectionError
+
 
 class CrawlMaster(BaseHTTPRequestHandler):
-    """ This is class a simple http server 
+    """ This is class a simple http server
         to deal with crawler get url and get url.
         use bloomfilter to filter repeated url
         use redis list to keep a queue
     """
 
     @classmethod
-    def init(self, init_dict, clear_data = True, _capacity = 5000000, _error_rate = 0.001):
-        """ init BloomFilter and Redis 
+    def init(self, init_dict,
+             clear_data  = True,
+             _capacity   = 5000000,
+             _error_rate = 0.001):
+        """ init BloomFilter and Redis
             init_dict is a dict
         """
         self.bf = BloomFilter(capacity = _capacity, error_rate = _error_rate)
@@ -42,7 +44,7 @@ class CrawlMaster(BaseHTTPRequestHandler):
                 self.rd.delete(que_name)
             try:
                 for url in urls:
-                    if not url in self.bf:
+                    if url not in self.bf:
                         self.rd.lpush(que_name, url)
                         self.bf.add(url)
             except redis.ConnectionError, e:
@@ -52,7 +54,7 @@ class CrawlMaster(BaseHTTPRequestHandler):
         if clear_data:
             create_user_table()
             create_topic_table()
-            
+
     @classmethod
     def link_redis(self):
         try:
@@ -87,12 +89,12 @@ class CrawlMaster(BaseHTTPRequestHandler):
     def do_POST(self):
         """ POST method, post url to queue"""
         import cgi
-        form = cgi.FieldStorage(  
+        form = cgi.FieldStorage(
             fp=self.rfile,
             headers=self.headers,
             environ={
-                'REQUEST_METHOD':'POST',
-                'CONTENT_TYPE':self.headers['Content-Type'],
+                'REQUEST_METHOD' : 'POST',
+                'CONTENT_TYPE'   : self.headers['Content-Type'],
             })
         import json
         url_list = json.loads(form['url'].value)
@@ -101,7 +103,7 @@ class CrawlMaster(BaseHTTPRequestHandler):
         if url_list:
             if que_type == 0:
                 for url in url_list:
-                    if not url in self.bf:
+                    if url not in self.bf:
                         self.rd.lpush(que_name, url)
                         self.bf.add(url)
             elif que_type == 1:
@@ -111,26 +113,31 @@ class CrawlMaster(BaseHTTPRequestHandler):
         else:
             self.send_error(400, "url is error")
             return
-            
+
         self.send_response(response_code)
         return
+
 
 class MyHTTPServer(HTTPServer):
     """This class is necessary to allow passing custom request handler into
        The CrawlMaster"""
-    def __init__(self, server_address, RequestHandlerClass,
-                 init_dict, clear_data = True,
-                 _capacity = 5000000, _error_rate = 0.001):
-        HTTPServer.__init__(self,server_address, RequestHandlerClass)
+    def __init__(self, server_address, RequestHandlerClass, init_dict,
+                 clear_data = True, _capacity = 5000000, _error_rate = 0.001):
+        HTTPServer.__init__(self, server_address, RequestHandlerClass)
         RequestHandlerClass.init(init_dict, clear_data, _capacity, _error_rate)
+
 
 def main():
     config = get_config("http")
     init_dict = {
-                'user' : ['e-mo-de-nai-ba', 'gayscript', 'xiaozhibo', 'giantchen', 
-                 'jeffz', 'incredible-vczh' 'fenng', 'lawrencelry', 'jixin', 'winter-25'],
-                'topic': ['19776749', '19612637']
-                }
+            'user' :
+                 ['e-mo-de-nai-ba', 'gayscript',
+                  'xiaozhibo', 'giantchen',
+                  'jeffz', 'incredible-vczh',
+                  'fenng', 'lawrencelry',
+                  'jixin', 'winter-25'],
+            'topic': ['19776749', '19612637']
+        }
     server = MyHTTPServer(
             (config('host'), int(config('port'))), 
             CrawlMaster, init_dict

@@ -1,6 +1,9 @@
 #!/usr/bin/python
 #encoding=utf-8
 
+''' The script parse the content of the html 
+    about zhihu answer web page'''
+
 import json
 import datetime
 import logging
