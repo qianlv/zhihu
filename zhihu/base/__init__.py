@@ -1,9 +1,8 @@
 import os
-import random
 import re
-from ConfigParser import SafeConfigParser, NoSectionError
-
+from ConfigParser import SafeConfigParser
 from zhihu.setting import get_config_file
+
 
 def get_config(sections_name):
     def get_key(key):
@@ -22,15 +21,17 @@ def save_page(title, content):
     except Exception, e:
         print Exception, ':', e
 
+
 def remove_blank_lines(text):
-    return os.linesep.join(
-                    [line for line in text.splitlines() if line.strip()]
-                    )
+    return os.linesep.join([line for line in text.splitlines()
+                            if line.strip()])
+
 
 def get_number_from_string(string):
     numbers = re.findall(r'(\d+)', string)
     numbers = [int(number) for number in numbers]
     return numbers
+
 
 def is_num_by_except(num):
     try:
