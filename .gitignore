@@ -7,4 +7,5 @@
 *.egg-info
 beautifulsoup4*
 requests
+zhihu/cookies/
 
