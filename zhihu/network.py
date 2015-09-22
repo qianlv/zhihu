@@ -17,7 +17,7 @@ from zhihu.setting import COOKIES_DIR, COOKIES_SAVE
 from zhihu.setting import COOKIES_PREFIX_FILENAME
 from zhihu.setting import SLEEP_TIME
 from zhihu.setting import EMAIL, PASSWD
-from zhihu.decorator import check_request
+# from zhihu.decorator import check_request
 from zhihu.logger import logger
 
 def get_url_id(url):
@@ -39,9 +39,11 @@ class DownloadPage(object):
     """A download page from web by requests 
     """
     _instance_lock = threading.Lock()
+    _prixies = None
 
-    def __init__(self, session=None): 
+    def __init__(self, session=None, proxies=None): 
         self.session = session or requests.session()
+        self.proxies = proxies
         self.login()
 
     @staticmethod
@@ -54,7 +56,10 @@ class DownloadPage(object):
                     DownloadPage._instance = DownloadPage()
         return DownloadPage._instance
 
-    @check_request
+    def set_proxy(self, proxies):
+        self._proxies = proxies
+
+    #@check_request
     def post_request(self, url, data=None):
         headers = get_headers(url)
         time.sleep(randrange(*SLEEP_TIME, int=float))
@@ -62,11 +67,12 @@ class DownloadPage(object):
                                      data=data,
                                      headers=headers,
                                      verify=False,
+                                     proxies=self.proxies,
                                      timeout=1)
         response.raise_for_status()
         return response
 
-    @check_request
+    #@check_request
     def get_request(self, url, params=None):
         headers = get_headers(url)
         time.sleep(randrange(*SLEEP_TIME, int=float))
@@ -74,6 +80,7 @@ class DownloadPage(object):
                                     params=params,
                                     headers=headers,
                                     verify=False,
+                                    proxies=self.proxies,
                                     timeout=1)
         response.raise_for_status()
         return response

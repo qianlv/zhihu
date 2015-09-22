@@ -4,6 +4,9 @@ import logging
 
 from functools import wraps
 from requests.exceptions import RequestException
+from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError
+from requests.exceptions import HTTPError
 
 
 def check_request(func):

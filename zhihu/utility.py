@@ -2,17 +2,12 @@
 
 import os
 import re
-from ConfigParser import SafeConfigParser
-from zhihu.setting import get_config_file
 
 
 def save_page(title, content):
-    try:
-        with open(title.strip(), "wb") as file:
-            file.write(title + '\n')
-            file.write(content.encode('utf-8'))
-    except Exception, e:
-        print Exception, ':', e
+    with open(title.strip(), "wb") as tmpfile:
+        tmpfile.write(title + '\n')
+        tmpfile.write(content.encode('utf-8'))
 
 
 def remove_blank_lines(text):

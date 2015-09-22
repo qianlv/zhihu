@@ -7,10 +7,8 @@ import logging
 import requests
 from bs4 import BeautifulSoup
 
-from zhihu.base.network import ZhiHuPage
-from zhihu.base.database import link_db
-from zhihu.base import get_number_from_string
-from zhihu.base.ippools import set_cur_proxies, get_proxies, delete_ip
+from zhihu.network import DownloadPage
+from zhihu.utility import get_number_from_string
 
 def check_ping(ip):
     import subprocess 
@@ -152,7 +150,7 @@ def crawl_ip_daily_ip():
             ips.extend(get_ip(href))
     return ips
 
-class CheckIp(ZhiHuPage):
+class CheckIp(object):
     def __init__(self):
         self.urls = ['http://www.zhihu.com/people/momobye', 
                      'http://www.zhihu.com/question/28679480/answer/41714552',
@@ -164,7 +162,6 @@ class CheckIp(ZhiHuPage):
                      'http://www.zhihu.com/question/30375859',
                      'http://www.zhihu.com/topic/19551052'
                      ]
-        self.db = link_db()
 
     def check_content(self, content):
         soup = BeautifulSoup(content)
@@ -174,42 +171,15 @@ class CheckIp(ZhiHuPage):
         return True
 
     def check(self, ip, ip_type = 0):
-        cursor = self.db.cursor()
-        sql = "select * from `ippools` where `ip` = '%s' \
-                and `port` = '%s' and `type` = %d" % (ip[0], ip[1], ip_type)
-        cursor.execute(sql)
-        res = cursor.fetchone()
-        if res:
-            return False
-         
         proxies = {'http': os.path.pathsep.join([ip[0], ip[1]]) }
         from random import choice
         url = self.urls[choice(range(0, len(self.urls)))]
-        set_cur_proxies(proxies) 
-        print proxies
         res = self.get_page(url)
         if res is None: 
             return False
         elif self.check_content(res.content):
             return False
         return True
-
-    def save_db(self, ip, ip_type = 0):
-        if not self.check(ip, ip_type):
-            return
-
-        cursor = self.db.cursor()
-        insert_sql = "insert into `ippools` (`ip`, `port`, `type`) \
-                        values ('%s', '%s', %d)" % (ip[0], ip[1], ip_type)
-        cursor.execute(insert_sql)
-        self.db.commit()
-
-    def __del__(self):
-        self.db.close()
-
-    def __call__(self, ips):
-        ips = set(ips)
-        map(self.save_db, ips)
 
 def main():
     #proxies = get_proxies(100)

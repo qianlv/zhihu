@@ -1,7 +1,9 @@
 #encoding=utf-8
-from zhihu.webparse import answer, topic, question
-from zhihu.webparse import user, collection
-from zhihu.base.ippools import set_cur_proxies
+from zhihu import answer
+from zhihu import topic
+from zhihu import question
+from zhihu import user
+from zhihu import collection
 from zhihu import setting
 
 def test_answer():
@@ -120,8 +122,6 @@ def test_user():
 
 
 if __name__ == '__main__':
-    print setting.CONFIG_DIR
-    set_cur_proxies({})
     print '--------Test User & UserBrief -----'
     test_user()
     print '--------Test Answer--------'

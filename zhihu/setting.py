@@ -1,7 +1,8 @@
-#encoding=utf-8
-#setting
+# encoding=utf-8
+# setting
 
 import os
+import logging
 
 # 账号
 EMAIL = '1054059790@qq.com'
@@ -38,7 +39,7 @@ PROXIES_MIN_USE_COUNT = 30
 MAX_FAIL_COUNT = 5
 
 # DB
-DB_HOST     = 127.0.0.1
+DB_HOST     = '127.0.0.1'
 DB_USER     = 'admin'
 DB_PASSWD   = 'password'
 DB_NAME     = 'zhihu'
