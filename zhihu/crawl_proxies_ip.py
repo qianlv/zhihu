@@ -2,7 +2,6 @@
 import sys
 import os
 import re
-import logging
 
 import requests
 from bs4 import BeautifulSoup
@@ -152,6 +151,7 @@ def crawl_ip_daily_ip():
 
 class CheckIp(object):
     def __init__(self):
+        self.download_page = DownloadPage.instance()
         self.urls = ['http://www.zhihu.com/people/momobye', 
                      'http://www.zhihu.com/question/28679480/answer/41714552',
                      'http://www.zhihu.com/question/21255529',
@@ -174,7 +174,8 @@ class CheckIp(object):
         proxies = {'http': os.path.pathsep.join([ip[0], ip[1]]) }
         from random import choice
         url = self.urls[choice(range(0, len(self.urls)))]
-        res = self.get_page(url)
+        self.download_page.set_proxy(proxies)
+        self.download_page.get_request(url)
         if res is None: 
             return False
         elif self.check_content(res.content):
