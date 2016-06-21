@@ -11,5 +11,5 @@ logging.basicConfig(
     level=LOG_LEVEL
 )
 
-Logger = logging.getLogger('zhihu')
+logger = logging.getLogger('zhihu')
 
