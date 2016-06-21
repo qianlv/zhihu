@@ -15,17 +15,16 @@ DEBUG = True
 # cookie 配置
 COOKIES_SAVE    = True
 COOKIES_DIR     = os.path.join(CURRENT_DIR, 'cookies')
-COOKIES_PREFIX_FILENAME = 'cookies.json'
 
 # 常量
-ZHI_HU_URL  = "http://www.zhihu.com"
+ZHI_HU_URL  = "https://www.zhihu.com"
 
 # 日志位置
 LOG_DIR     = CURRENT_DIR
 LOG_FILE    = os.path.join(CURRENT_DIR, 'log.txt')
 LOG_FORMAT  = "%(asctime)s|%(filename)s|%(funcName)s:\
             %(lineno)d|%(levelname)s: %(message)s"
-LOG_LEVEL   = logging.DEBUG
+LOG_LEVEL   = logging.INFO
 
 # 页面访问随机时间间隔
 SLEEP_TIME      = [0, 1.5]
