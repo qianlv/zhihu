@@ -1,4 +1,10 @@
-#encoding=utf-8
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from zhihu.network import Login
+t = Login()
+t.login(email="1054059790@qq.com", passwd="xiao105405")
+
 from zhihu import answer
 from zhihu import topic
 from zhihu import question
@@ -7,7 +13,7 @@ from zhihu import collection
 from zhihu import setting
 
 def test_answer():
-    my_answer = answer.Answer("http://www.zhihu.com/question/30909334/answer/50176562")
+    my_answer = answer.Answer("https://www.zhihu.com/question/30909334/answer/50176562")
     print "所属问题:", my_answer.get_question().get_title()
     print "作者:", my_answer.get_auther().get_user_name()
     print "赞同数:", my_answer.get_voter_num()
@@ -24,7 +30,7 @@ def test_answer():
 
 
 def test_topic():
-    my_topic = topic.Topic("http://www.zhihu.com/topic/19570098")
+    my_topic = topic.Topic("https://www.zhihu.com/topic/19570098")
     print "话题名:", my_topic.get_topic_name()
     print "话题问题页数:", my_topic.get_topic_page_num()
     print "话题下的关注数:", my_topic.get_topic_follower_num()
@@ -70,10 +76,12 @@ def test_question():
     for ans in problem.get_answers():
         count +=1
         print '------', count
-        print ans.get_auther().get_user_name()
+        auther = ans.get_auther()
+        if auther:
+            print auther.get_user_name()
 
 def test_user():
-    my_user = user.User("http://www.zhihu.com/people/qian-lu-55")
+    my_user = user.User("https://www.zhihu.com/people/qian-lu-55")
     print '用户名:', my_user.get_user_name()
     print '用户Id:', my_user.get_user_id()
     print '赞同数:', my_user.get_upvote_num()
@@ -120,6 +128,34 @@ def test_user():
     #print ub.get_posts_num()
     print ub.get_followers_num()
 
+def test_collecton():
+    #my_collection = collection.Collection("https://www.zhihu.com/collection/30792398")
+    my_collection = collection.Collection("https://www.zhihu.com/collection/19764022")
+    print '收藏夹名称: ', my_collection.get_collection_name()
+    print '收藏夹id: ',  my_collection.get_collection_id()
+    print '收藏夹URL: ', my_collection.get_collection_url()
+    print '收藏夹创建者: ', my_collection.get_creator().get_user_name()
+    
+    print '收藏夹回答数: ', my_collection.get_answers_num()
+    print '收藏夹的回答: '
+    answers = my_collection.get_answers()
+    count = 0
+    for ans in answers:
+        print ans.get_answer_id()
+        count += 1
+        if count > 5: break
+    print '收藏夹的关注数量: ', my_collection.get_followers_num()
+    print '收藏夹关注者: '
+    count = 0
+    users = my_collection.get_followers()
+    for ur in users:
+        print ur.get_user_name()
+        count += 1
+        if count > 5: break
+        
+
+
+
 
 if __name__ == '__main__':
     print '--------Test User & UserBrief -----'
@@ -130,4 +166,6 @@ if __name__ == '__main__':
     test_topic()
     print '------ Test Question ------'
     test_question()
+    print '------ Test Collection------'
+    test_collecton()
 
