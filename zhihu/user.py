@@ -5,30 +5,27 @@ import json
 
 from bs4 import BeautifulSoup
 
-from zhihu.network import DownloadPage
+from zhihu.network import default_net_request
 from zhihu.network import get_url_id
 from zhihu.utility import get_number_from_string
 from zhihu.setting import ZHI_HU_URL
 # from zhihu.logger import logger
-from zhihu import answer
-from zhihu import question
-from zhihu import topic
-from zhihu import collection
+import zhihu.answer
+import zhihu.question
+import zhihu.topic
+import zhihu.collection
 
 
 class User(object):
     ''' Parse zhihu the web page of user.
         User(url, [name, user_id])
         url: the url of user.
-        name: the name of user.
-        user_id: the id of user.
     '''
     def __init__(self, url):
         if url and url[-1] == '/':
             url = url[0:-1]
-        self.download_page = DownloadPage.instance()
-        response = self.download_page.get_request(url)
-        self.soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(url)
+        self.soup = BeautifulSoup(response.content, "lxml")
         self.url = url
 
     def __nonzero__(self):
@@ -38,7 +35,7 @@ class User(object):
 
     def get_user_name(self):
         ''' return the name of user, return None when user doesn't exist.
-        '''
+        '''	
         soup = self.soup.find(
             "div",
             attrs={"class": "title-section ellipsis"}
@@ -176,8 +173,8 @@ class User(object):
             return True
 
         page_num = (num - 1) / 20 + 1
-        response = self.download_page.get_request(url)
-        follow_soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(url)
+        follow_soup = BeautifulSoup(response.content, "lxml")
         follow_tag = follow_soup.find(
             "div", attrs={"class": "zh-general-list clearfix"})
         follow_div = follow_tag.find_all(
@@ -206,9 +203,9 @@ class User(object):
                 "method": "next",
                 "params": json.dumps(data_init["params"])
             }
-            response = self.download_page.post_request(post_url, data)
+            response = default_net_request.post_request(post_url, data)
             for content in response.json()['msg']:
-                soup = BeautifulSoup(content)
+                soup = BeautifulSoup(content, "lxml")
                 follow_div = soup.find(
                     "div", attrs={"class": "zm-list-content-medium"})
                 all_a_tag = follow_div.find_all("a")
@@ -221,6 +218,7 @@ class User(object):
     def get_topics_num(self):
         ''' Return topic number which user follow.'''
         url = self.url.replace(ZHI_HU_URL, "") + "/topics"
+	print url	
         topics_num = get_number_from_string(
             self.soup.find("a", href=url).strong.string)[0]
         return topics_num
@@ -234,15 +232,15 @@ class User(object):
         page_num = (num - 1) / 20 + 1
 
         post_url = self.url + "/topics"
-        response = self.download_page.get_request(post_url)
-        topic_soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(post_url)
+        topic_soup = BeautifulSoup(response.content, "lxml")
         topic_tag = topic_soup.find(
             "div", attrs={"id": "zh-profile-topic-list"})
         topic_a = topic_tag.find_all(
             "a", attrs={"class": "zm-list-avatar-link"})
         for a_tag in topic_a:
             url = ZHI_HU_URL + a_tag.get("href")
-            yield topic.Topic(url)
+            yield zhihu.topic.Topic(url)
 
         if page_num <= 1:
             return
@@ -257,14 +255,14 @@ class User(object):
                 "offset": offset,
                 "start": 0
             }
-            response = self.download_page.post_request(post_url, data)
+            response = default_net_request.post_request(post_url, data)
             content = response.json()['msg'][1]
             soup = BeautifulSoup(content)
             topic_a = soup.find_all(
                 "a", attrs={"class": "zm-list-avatar-link"})
             for a_tag in topic_a:
                 url = ZHI_HU_URL + a_tag.get("href")
-                yield topic.Topic(url)
+                yield zhihu.topic.Topic(url)
 
     # 关注的专栏数
     def get_follow_posts_num(self):
@@ -284,14 +282,14 @@ class User(object):
 
         for i in range(1, page + 1):
             get_url = "%s/answers?page=%d" % (self.url, i)
-            response = self.download_page.get_request(get_url)
-            soup = BeautifulSoup(response.content)
+            response = default_net_request.get_request(get_url)
+            soup = BeautifulSoup(response.content, "lxml")
             answer_list = soup.find(
                 "div", id="zh-profile-answer-list"
             ).find_all("a", class_="question_link")
             for item in answer_list:
                 url = ZHI_HU_URL + item.get("href")
-                yield answer.Answer(url)
+                yield zhihu.answer.Answer(url)
 
     # 提的问题
     def get_asks(self):
@@ -303,14 +301,14 @@ class User(object):
 
         for i in range(1, page + 1):
             get_url = "%s/asks?page=%d" % (self.url, i)
-            response = self.download_page.get_request(get_url)
-            soup = BeautifulSoup(response.content)
+            response = default_net_request.get_request(get_url)
+            soup = BeautifulSoup(response.content, "lxml")
             ask_list = soup.find(
                 "div", id="zh-profile-ask-list"
             ).find_all("a", class_="question_link")
             for item in ask_list:
                 url = ZHI_HU_URL + item.get("href")
-                yield question.Question(url)
+                yield zhihu.question.Question(url)
 
     # 收藏夹
     def get_collections(self):
@@ -322,13 +320,13 @@ class User(object):
 
         for i in range(1, page + 1):
             get_url = "%s/collections?page=%d" % (self.url, i)
-            response = self.download_page.get_request(get_url)
-            soup = BeautifulSoup(response.content)
+            response = default_net_request.get_request(get_url)
+            soup = BeautifulSoup(response.content, "lxml")
             collection_list = soup.find_all(
                 "a", class_="zm-profile-fav-item-title")
             for item in collection_list:
                 url = ZHI_HU_URL + item.get("href")
-                yield collection.Collection(url)
+                yield zhihu.collection.Collection(url)
 
 
 class UserBrief(object):
@@ -338,9 +336,8 @@ class UserBrief(object):
         params = {"params": json.dumps(params)}
         self.user_id = user_id
         self.url = ZHI_HU_URL + "/node/MemberProfileCardV2"
-        self.download_page = DownloadPage.instance()
-        response = self.download_page.get_request(self.url, params=params)
-        self.soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(self.url, params=params)
+        self.soup = BeautifulSoup(response.content, "lxml")
 
     def get_user_id(self):
         ''' Return the id of user.'''

@@ -3,18 +3,17 @@
 
 from bs4 import BeautifulSoup
 
-from zhihu.network import DownloadPage
+from zhihu.network import default_net_request
 from zhihu.network import get_url_id
 from zhihu.utility import is_num_by_except
 from zhihu.setting import ZHI_HU_URL
-from zhihu import question
+import zhihu.question 
 
 
 class Topic(object):
     def __init__(self, url):
-        self.download_page = DownloadPage.instance()
-        response = self.download_page.get_request(url)
-        self.soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(url)
+        self.soup = BeautifulSoup(response.content, "lxml")
         self.url = url
 
     def __nonzero__(self):
@@ -61,15 +60,15 @@ class Topic(object):
         for page in xrange(1, self.get_topic_page_num() + 1):
             url = "{0}?page={1}".format(self.url, str(page))
 
-            response = self.download_page.get_request(url)
+            response = default_net_request.get_request(url)
             if not response:
-                page_soup = BeautifulSoup(response.content)
+                page_soup = BeautifulSoup(response.content, "lxml")
                 question_links = page_soup.find_all(
                     "a", attrs={"target": "_blank", "class": "question_link"})
 
                 for link in question_links:
                     url = ZHI_HU_URL + link.get('href')
-                    yield question.Question(url)
+                    yield zhihu.question.Question(url)
             return
 
     def get_child_topics(self):
@@ -88,9 +87,8 @@ class Topic(object):
 
 class TopicNode(object):
     def __init__(self, url):
-        self.download_page = DownloadPage.instance()
-        response = self.download_page.get_request(url)
-        self.soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(url)
+        self.soup = BeautifulSoup(response.content, "lxml")
         self.url = url
 
     def __nonzero__(self):
@@ -129,7 +127,7 @@ class TopicNode(object):
         while True:
             data_token, data_parent = None, None
 
-            response = self.download_page.post_request(post_url, data=data)
+            response = default_net_request.post_request(post_url, data=data)
             msg = response.json()["msg"]
             topic_list = msg[1]
 

@@ -8,19 +8,18 @@ import datetime
 
 from bs4 import BeautifulSoup
 
-from zhihu.network import DownloadPage
+from zhihu.network import default_net_request
 from zhihu.utility import get_number_from_string
 from zhihu.setting import ZHI_HU_URL
-from zhihu import question
-from zhihu import user
-from zhihu import topic
+import zhihu.question
+import zhihu.user
+import zhihu.topic
 
 
 class Answer(object):
     def __init__(self, url, _question=None):
-        self.download_page = DownloadPage.instance()
-        response = self.download_page.get_request(url)
-        self.soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(url)
+        self.soup = BeautifulSoup(response.content, "lxml")
         self.url = url
         if _question:
             self._question = _question
@@ -29,7 +28,7 @@ class Answer(object):
     def get_question(self):
         url = self.url.split("/")[0:-2]
         url = "/".join(url)
-        return question.Question(url)
+        return zhihu.question.Question(url)
 
     # 回答ID
     def get_answer_id(self):
@@ -40,13 +39,12 @@ class Answer(object):
 
     # 作者
     def get_auther(self):
-        auther_tag = self.soup.find("h3", class_="zm-item-answer-author-wrap")
+        auther_tag = self.soup.find("a", class_="zm-item-link-avatar")
         if auther_tag.string == u'匿名用户':
             auther_url = None
         else:
-            auther_tag = auther_tag.a
             auther_url = ZHI_HU_URL + auther_tag.get("href")
-        return user.User(auther_url)
+        return zhihu.user.User(auther_url)
 
     def get_voter_page(self, get_url=None):
         if get_url is None:
@@ -56,7 +54,7 @@ class Answer(object):
             anchor = answer_anchor.split('-')[1]
             get_url = "%s/answer/%s/voters_profile" % (ZHI_HU_URL, anchor)
 
-        return self.download_page.get_request(get_url)
+        return default_net_request.get_request(get_url)
 
     # 赞同数
     def get_voter_num(self):
@@ -74,13 +72,13 @@ class Answer(object):
             get_url = ZHI_HU_URL + voter_soup.json()['paging']['next']
 
             for item in voter_soup.json()['payload']:
-                soup = BeautifulSoup(item).find('a')
+                soup = BeautifulSoup(item, "lxml").find('a')
                 yield (soup.get('title'), ZHI_HU_URL + soup.get('href'))
 
     def get_voters_detail(self):
         voters = self.get_voters()
         for voter in voters:
-            yield user.User(voter[1])
+            yield zhihu.user.User(voter[1])
 
     # 回答时间
     def get_answer_time(self):
@@ -106,9 +104,9 @@ class Answer(object):
     def get_topics(self):
         for _, url in self.get_topics_name_and_url():
             topic_url = ZHI_HU_URL + url
-            yield topic.Topic(topic_url)
+            yield zhihu.topic.Topic(topic_url)
 
     def get_content(self):
-        soup = self.soup.find("div", class_=" zm-editable-content clearfix")
+        soup = self.soup.find("div", class_="zm-editable-content clearfix")
         text = soup.get_text()
         return text.encode("utf-8")

@@ -5,18 +5,17 @@ import json
 
 from bs4 import BeautifulSoup
 
-from zhihu.network import DownloadPage
+from zhihu.network import default_net_request
 from zhihu.utility import remove_blank_lines, get_number_from_string
 from zhihu.setting import ZHI_HU_URL
-from zhihu import topic
-from zhihu import answer
+import zhihu.topic
+import zhihu.answer
 
 
 class Question(object):
     def __init__(self, url):
-        self.download_page = DownloadPage.instance()
-        response = self.download_page.get_request(url)
-        self.soup = BeautifulSoup(response.content)
+        response = default_net_request.get_request(url)
+        self.soup = BeautifulSoup(response.content, "lxml")
         self.url = url
 
     def get_title(self):
@@ -48,7 +47,7 @@ class Question(object):
         answer_link = soup.find_all("a", class_="answer-date-link")
         for link in answer_link:
             url = ZHI_HU_URL + link.get("href")
-            yield answer.Answer(url)
+            yield zhihu.answer.Answer(url)
 
         answer_num = (self.get_answers_num() + 49) / 50
         if answer_num <= 1:
@@ -65,13 +64,13 @@ class Question(object):
                 "method": "next",
                 "params": json.dumps(data_init["params"])
             }
-            response = self.download_page.post_request(post_url, data)
+            response = default_net_request.post_request(post_url, data)
             for content in response.json()['msg']:
-                soup = BeautifulSoup(content)
+                soup = BeautifulSoup(content, "lxml")
                 link = soup.find(
                     "a", class_="answer-date-link")
                 url = ZHI_HU_URL + link.get("href")
-                yield answer.Answer(url)
+                yield zhihu.answer.Answer(url)
 
     def get_follower_num(self):
         soup = self.soup.find("div", id="zh-question-side-header-wrap")
@@ -84,4 +83,4 @@ class Question(object):
         topic_all = soup.find_all("a")
         for topic_tag in topic_all:
             url = ZHI_HU_URL + topic_tag.get('href')
-            yield topic.Topic(url)
+            yield zhihu.topic.Topic(url)
