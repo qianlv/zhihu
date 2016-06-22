@@ -7,5 +7,6 @@
 *.egg-info
 beautifulsoup4*
 requests
-zhihu/cookies/
-
+zhihu/cookies
+log.txt
+code.gif
