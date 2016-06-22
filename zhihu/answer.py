@@ -47,11 +47,11 @@ class Answer(object):
     def get_auther(self):
         """ 回答作者
             return: 回答作者
-            rtype: User.Iterable
+            rtype: User 或 None(匿名用户)
         """
         auther_tag = self.soup.find("a", class_="zm-item-link-avatar")
-        if auther_tag.string == u'匿名用户':
-            auther_url = None
+        if auther_tag is None:
+            return None
         else:
             auther_url = ZHI_HU_URL + auther_tag.get("href")
         return zhihu.user.User(auther_url)
