@@ -9,7 +9,7 @@ from zhihu.network import default_net_request
 from zhihu.network import get_url_id
 from zhihu.utility import get_number_from_string
 from zhihu.setting import ZHI_HU_URL
-# from zhihu.logger import logger
+
 import zhihu.answer
 import zhihu.question
 import zhihu.topic
@@ -34,7 +34,8 @@ class User(object):
         return True
 
     def get_user_name(self):
-        ''' return the name of user, return None when user doesn't exist.
+        ''' 用户名
+            rtype: str
         '''	
         soup = self.soup.find(
             "div",
@@ -44,11 +45,15 @@ class User(object):
         return user_name.encode("utf-8")
 
     def get_user_id(self):
-        ''' Return the id of user '''
+        ''' 用户ID
+            rtype: str
+        '''
         return get_url_id(self.url)
 
     def get_upvote_num(self):
-        ''' Return upvote(up vote) number of user.'''
+        ''' 用户赞同数
+            rtype: int
+        '''
         soup = self.soup.find(
             "span",
             attrs={"class": "zm-profile-header-user-agree"}
@@ -57,7 +62,9 @@ class User(object):
         return agrees_num
 
     def get_thanks_num(self):
-        ''' Return thanks number of user.'''
+        ''' 用户感谢数
+            rtype: int
+        '''
         soup = self.soup.find(
             "span",
             attrs={"class": "zm-profile-header-user-thanks"}
@@ -67,24 +74,33 @@ class User(object):
         return thanks_num
 
     def get_asks_num(self):
-        ''' Return ask number of user.'''
+        ''' 用户提问数
+            rtype: int
+        '''
         return self.get_action_num()[0]
 
     def get_answers_num(self):
-        ''' Return answers number of user.'''
+        ''' 用户问题数
+            rtype: int
+        '''
         return self.get_action_num()[1]
 
-    # 专栏文章数
     def get_posts_num(self):
-        ''' Return post number of user.'''
+        ''' 用户专栏文章数
+            rtype: int
+        '''
         return self.get_action_num()[2]
 
     def get_collections_num(self):
-        ''' Return collection number of user. '''
+        ''' 用户收藏数
+            rtype: int
+        '''
         return self.get_action_num()[3]
 
     def get_logs_num(self):
-        ''' Return log number of user. '''
+        ''' 用户公共编辑数
+            rtype: int
+        '''
         return self.get_action_num()[4]
 
     def get_action_num(self):
@@ -98,7 +114,9 @@ class User(object):
         return action_num
 
     def get_followers_num(self):
-        ''' Return follower number of user.'''
+        ''' 用户关注者数量
+            rtype: int
+        '''
         soup = self.soup.find(
             "div",
             attrs={"class": "zm-profile-side-following zg-clear"})
@@ -107,7 +125,9 @@ class User(object):
         return follower_num
 
     def get_followees_num(self):
-        ''' Return the number of user which current user follow.'''
+        ''' 用户关注多少人
+            rtype: int
+        '''
         soup = self.soup.find(
             "div",
             attrs={"class": "zm-profile-side-following zg-clear"})
@@ -117,9 +137,8 @@ class User(object):
 
     # 获取我关注的人信息
     def get_followees(self, threshold=2):
-        ''' Return iterable of user (url, name) which current user follow.
-            threshold is to filter some user which the number of follower,
-            ask, answer, upvote more than 0 less than threshold.
+        ''' 用户关注的人的主页地址和名字
+            rtype: tuple(URL, UserName)
         '''
         return self.__get_followees_or_follwers(
             self.url + "/followees",
@@ -127,29 +146,25 @@ class User(object):
             threshold)
 
     def get_followees_user(self, threshold=2):
-        ''' Return iterable of User class which current user follow.
-            threshold is to filter some user which the number of follower,
-            ask, answer, upvote more than 0 less than threshold.
+        ''' 用户关注的人
+            rtype: User.Iterable
         '''
         followees_iter = self.get_followees(threshold)
         for url, name in followees_iter:
             yield User(url)
 
     def get_followers(self, threshold=2):
-        ''' Return iterable of user (url, name) which follow current user.
-            threshold is to filter some user which the number of follower,
-            ask, answer, upvote more than 0 less than threshold.
+        ''' 关注用户人的这样地址和用户名
+            rtype: tuple(URL, UserName)
         '''
         return self.__get_followees_or_follwers(
             self.url + "/followers",
             self.get_followers_num(),
             threshold)
 
-    # 获取关注我的人的信息
     def get_followers_user(self, threshold=2):
-        ''' Return iterable of User which follow current user.
-            threshold is to filter some user which the number of follower,
-            ask, answer, upvote more than 0 less than threshold.
+        ''' 关注用户的人
+            rtype: User.Iterable
         '''
         followers_iter = self.get_followers(threshold)
         for url, name in followers_iter:
@@ -214,18 +229,20 @@ class User(object):
                 url = all_a_tag[0].get("href")
                 yield (url, all_a_tag[0].get("title"))
 
-    # 关注话题数
     def get_topics_num(self):
-        ''' Return topic number which user follow.'''
+        ''' 关注话题数
+            rtype: int
+        '''
         url = self.url.replace(ZHI_HU_URL, "") + "/topics"
 	print url	
         topics_num = get_number_from_string(
             self.soup.find("a", href=url).strong.string)[0]
         return topics_num
 
-    # 关注的话题
     def get_topics(self):
-        ''' Return Topic iterable which current user follow.'''
+        ''' 关注话题
+            rtype: Topic.Iterable
+        '''
         num = self.get_topics_num()
         if num is None or num <= 0:
             return
@@ -264,17 +281,19 @@ class User(object):
                 url = ZHI_HU_URL + a_tag.get("href")
                 yield zhihu.topic.Topic(url)
 
-    # 关注的专栏数
     def get_follow_posts_num(self):
-        ''' Return follow post number. '''
+        ''' 关注专栏数
+            rtype: int
+        '''
         url = self.url.replace(ZHI_HU_URL, "") + "/columns/followed"
         follow_posts_num = get_number_from_string(
             self.soup.find("a", href=url).strong.string)[0]
         return follow_posts_num
 
-    # 回答的问题
     def get_answers(self):
-        ''' Return Answer of user.'''
+        ''' 关注问题
+            rtype: Answer.Iterable
+        '''
         num = self.get_answers_num()
         if num is None or num <= 0:
             return
@@ -291,9 +310,10 @@ class User(object):
                 url = ZHI_HU_URL + item.get("href")
                 yield zhihu.answer.Answer(url)
 
-    # 提的问题
     def get_asks(self):
-        ''' Return Question which current user asked.'''
+        ''' 提的问题
+            rtype: Question.Iterable
+        '''
         num = self.get_asks_num()
         if num is None or num <= 0:
             return
@@ -310,9 +330,10 @@ class User(object):
                 url = ZHI_HU_URL + item.get("href")
                 yield zhihu.question.Question(url)
 
-    # 收藏夹
     def get_collections(self):
-        ''' Return Collection which user created.'''
+        ''' 用户的收藏夹
+            rtype: Collection.Iterable
+        '''
         num = self.get_collections_num()
         if num is None or num <= 0:
             return
@@ -330,7 +351,8 @@ class User(object):
 
 
 class UserBrief(object):
-    ''' Get zhihu user brief information.'''
+    ''' 用户简要信息
+    '''
     def __init__(self, user_id):
         params = {"url_token": user_id}
         params = {"params": json.dumps(params)}
@@ -340,20 +362,35 @@ class UserBrief(object):
         self.soup = BeautifulSoup(response.content, "lxml")
 
     def get_user_id(self):
-        ''' Return the id of user.'''
+        ''' 用户ID
+            rtype: str
+        '''
         return self.user_id
 
     def get_user_name(self):
-        ''' Return the name of user.'''
+        ''' 用户名
+            rtype: str
+        '''	
         user_name = self.soup.find("span", class_="name").string
         return user_name
 
-    def deal_num(self, num):
-        return num
-
     def get_followers_num(self):
-        ''' Return follower number of user.'''
-        followers_num = self.soup.find_all(
-            "span", class_="value")[2].string
-        followers_num = self.deal_num(followers_num)
-        return followers_num
+        ''' 用户关注者数量
+            rtype: int
+        '''
+        followers_num = self.soup.find_all("span", class_="value")[2].string
+        return int(followers_num)
+
+    def get_posts_num(self):
+        ''' 用户专栏文章数
+            rtype: int
+        '''
+        post_num = self.soup.find_all("span", class_="value")[1].string
+        return int(post_num)
+
+    def get_answers_num(self):
+        ''' 用户问题数
+            rtype: int
+        '''
+        answer_num = self.soup.find_all("span", class_="value")[0].string
+        return int(answer_num)

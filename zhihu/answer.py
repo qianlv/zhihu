@@ -24,14 +24,20 @@ class Answer(object):
         if _question:
             self._question = _question
 
-    # 所属问题
     def get_question(self):
+        """ 回答所属问题
+            return: 回答所属问题
+            rtype: Question.Iterable
+        """
         url = self.url.split("/")[0:-2]
         url = "/".join(url)
         return zhihu.question.Question(url)
 
-    # 回答ID
     def get_answer_id(self):
+        """ 问题ID
+            return: 问题ID
+            rtype: str
+        """
         return self.get_id()
 
     def get_id(self):
@@ -39,6 +45,10 @@ class Answer(object):
 
     # 作者
     def get_auther(self):
+        """ 回答作者
+            return: 回答作者
+            rtype: User.Iterable
+        """
         auther_tag = self.soup.find("a", class_="zm-item-link-avatar")
         if auther_tag.string == u'匿名用户':
             auther_url = None
@@ -56,14 +66,20 @@ class Answer(object):
 
         return default_net_request.get_request(get_url)
 
-    # 赞同数
     def get_voter_num(self):
+        """ 回答赞同者数量
+            return: 回答赞同者数量
+            rtype: int
+        """
         voters_soup = self.get_voter_page()
         voter_num = int(voters_soup.json()['paging']['total'])
         return voter_num
 
-    # 赞同者
     def get_voters(self):
+        """ 回答赞同者
+            return: 回答赞同者名字和主页地址
+            rtype: (username, url) Iterable
+        """
         get_url = None
         while True:
             if get_url == "":
@@ -76,12 +92,19 @@ class Answer(object):
                 yield (soup.get('title'), ZHI_HU_URL + soup.get('href'))
 
     def get_voters_detail(self):
+        """ 回答赞同者
+            return: 回答赞同者
+            rtype: User.Iterable
+        """
         voters = self.get_voters()
         for voter in voters:
             yield zhihu.user.User(voter[1])
 
-    # 回答时间
     def get_answer_time(self):
+        """ 回答时间
+            return: 回答时间
+            rtype: datetime.datetime
+        """
         date_tag = self.soup.find("a", class_="answer-date-link")
         date_list = get_number_from_string(date_tag.string)
 
@@ -100,13 +123,20 @@ class Answer(object):
         topic_all = soup.find_all("a")
         return [(item.string, item.get("href")) for item in topic_all]
 
-    # 话题名
     def get_topics(self):
+        """ 回答所属话题
+            return: 话题
+            rtype: Topic.Iterable
+        """
         for _, url in self.get_topics_name_and_url():
             topic_url = ZHI_HU_URL + url
             yield zhihu.topic.Topic(topic_url)
 
     def get_content(self):
+        """ 回答内容
+            return: 回答内容
+            rtype: str
+        """
         soup = self.soup.find("div", class_="zm-editable-content clearfix")
         text = soup.get_text()
         return text.encode("utf-8")

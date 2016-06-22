@@ -22,12 +22,21 @@ class Topic(object):
         return True
 
     def get_topic_url(self):
+        """ 话题URL
+            rtype: str
+        """
         return self.url
 
     def get_topic_id(self):
+        """ 话题ID
+            rtype: str
+        """
         return get_url_id(self.url)
 
     def get_topic_name(self):
+        """ 话题名
+            rtype: str
+        """
         soup = self.soup.find(
             "div", attrs={"class": "topic-name", "id": "zh-topic-title"})
         topic_name = soup.h1.get_text()
@@ -46,6 +55,9 @@ class Topic(object):
         return topic_page_num
 
     def get_topic_follower_num(self):
+        """ 话题关注数量
+            rtype: int
+        """
         num = self.soup.find(
             "div", class_="zm-topic-side-followers-info").strong.get_text()
 
@@ -57,6 +69,9 @@ class Topic(object):
         return topic_follower_num
 
     def get_questions(self):
+        """ 话题下的问题
+            rtype: Question.Iterable
+        """
         for page in xrange(1, self.get_topic_page_num() + 1):
             url = "{0}?page={1}".format(self.url, str(page))
 
@@ -72,6 +87,9 @@ class Topic(object):
             return
 
     def get_child_topics(self):
+        """ 话题的子话题
+            rtype: TopicNode.Iterable
+        """
         url = "{0}/organize/entire".format(self.url)
         cur_topic_node = TopicNode(url)
 
@@ -79,6 +97,9 @@ class Topic(object):
             yield Topic(child.get_topic_url())
 
     def get_child_ids(self):
+        """ 话题的子话题ID
+            rtype: int iterable
+        """
         url = "{0}/organize/entire".format(self.url)
         cur_topic_node = TopicNode(url)
         for child in cur_topic_node:
@@ -86,6 +107,8 @@ class Topic(object):
 
 
 class TopicNode(object):
+    """ 话题节点
+    """
     def __init__(self, url):
         response = default_net_request.get_request(url)
         self.soup = BeautifulSoup(response.content, "lxml")
@@ -97,27 +120,45 @@ class TopicNode(object):
         return True
 
     def get_node_name(self):
+        """ 话题节点名
+            rtype: str
+        """
         soup = self.soup.find("h1", class_="zm-editable-content")
         node_name = soup.string
         return node_name.encode("utf-8")
 
     def get_node_url(self):
+        """ 话题节点URL
+            rtype: str
+        """
         return self.url
 
     def get_topic_id(self):
+        """ 话题ID
+            rtype: str
+        """
         return get_url_id(self.url)
 
     def get_topic_url(self):
+        """ 话题URL
+            rtype: str
+        """
         url = self.url.split("/")
         return "/".join(url[0:-2])
 
     def get_topic(self):
+        """ 节点话题
+            rtype: Topic
+        """
         return Topic(self.get_topic_url())
 
     def get_parent_node(self):
         pass
 
     def get_children_nodes(self):
+        """ 话题子节点
+            rtype: TopicNode.Iterable
+        """
         xsrf = self.soup.find(
             "input", attrs={"name": "_xsrf", "type": "hidden"}).get("value")
 

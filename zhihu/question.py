@@ -19,18 +19,30 @@ class Question(object):
         self.url = url
 
     def get_title(self):
+        """ 问题标题
+            return: 问题标题
+            rtype: str
+        """
         title = self.soup.find("div", id="zh-question-title").get_text()
         title = remove_blank_lines(title)
         title = title
         return title.encode("utf-8")
 
     def get_detail(self):
+        """ 问题详细描述
+            return: 问题详细描述
+            rtype: str
+        """
         detail_div = self.soup.find("div", id="zh-question-detail").div
         detail = detail_div.get_text()
         detail = remove_blank_lines(detail)
         return detail.encode("utf-8")
 
     def get_answers_num(self):
+        """ 问题回答数量
+            return: 回答数量
+            rtype: int
+        """
         soup = self.soup.find("h3", id="zh-question-answer-num")
         # 0个或1个答案是没有直接显示答案个数
         if soup is None:
@@ -43,6 +55,10 @@ class Question(object):
         return answers_num
 
     def get_answers(self):
+        """ 问题的回答
+            return: 问题回答
+            rtype: Answer.Iterable
+        """
         soup = self.soup.find("div", id="zh-question-answer-wrap")
         answer_link = soup.find_all("a", class_="answer-date-link")
         for link in answer_link:
@@ -73,11 +89,19 @@ class Question(object):
                 yield zhihu.answer.Answer(url)
 
     def get_follower_num(self):
+        """ 问题关注者的数量
+            return: 问题关注数量
+            rtype: int
+        """
         soup = self.soup.find("div", id="zh-question-side-header-wrap")
         follower_num = get_number_from_string(soup.get_text())[0]
         return follower_num
 
     def get_topics(self):
+        """ 问题所属话题
+            return: 问题所属话题
+            rtype: Topic.Iterable
+        """
         soup = self.soup.find(
             "div", attrs={"class": "zm-tag-editor-labels zg-clear"})
         topic_all = soup.find_all("a")
