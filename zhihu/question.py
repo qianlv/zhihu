@@ -65,7 +65,7 @@ class Question(object):
             url = ZHI_HU_URL + link.get("href")
             yield zhihu.answer.Answer(url)
 
-        answer_num = (self.get_answers_num() + 49) / 50
+        answer_num = (self.get_answers_num() + 9) / 10
         if answer_num <= 1:
             return
         data_init = json.loads(soup.get("data-init"))
@@ -73,8 +73,9 @@ class Question(object):
         input_tag = self.soup.find(
             "input", attrs={"type": "hidden", "name": "_xsrf"})
         value = input_tag.get("value")
-        for offset in range(50, answer_num * 50 + 50, 50):
+        for offset in range(10, answer_num * 10 + 10, 10):
             data_init['params']['offset'] = offset
+            print data_init
             data = {
                 "_xsrf": value,
                 "method": "next",

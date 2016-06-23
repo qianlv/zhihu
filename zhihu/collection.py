@@ -65,11 +65,6 @@ class Collection(object):
         """ 收藏夹关注数量
             rtype: int
         """
-        if self.soup2 is None:
-            url = ZHI_HU_URL + "/people/" + get_creator().get_id() + "/collections"
-            response = default_net_request.get_request(url)
-            self.soup2 = BeautifulSoup(response.content, "lxml")
-
         follower_url = self.url.split("/")[-2:]
         follower_url = "/" + "/".join(follower_url)
         follower_url = follower_url + "/followers"
